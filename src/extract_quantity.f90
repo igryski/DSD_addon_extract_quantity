@@ -6,7 +6,7 @@
 !!               qindex qindex2 (wavelength)
 !! wavelength is only needed for qindex=13,14 or 15, 19 20
 !!
-!! @version ecsim 1.3.6 [synced on github as of 7.Jan.2015]
+!! @version ecsim 1.3.6 [synced on github as of 20.Jan.2015]
 !!
 !!
 !! *SRC_FILE*
@@ -15,7 +15,7 @@
 !!
 !! *LAST CHANGES*
 !!
-!! -Jan 08, 2015: I.S  Changed GitHub repository name to "extract_quantity_Nsize_DSD"
+!! -Jan 08, 2015: I.S  Changed GitHub repository name to "DSD_addon_extract_quantity"
 !! -Nov 27, 2014: I.S. Included DSD (parameter Nsize) to be extractable, as quantity 17
 !! -Nov 30, 2011: D.D. Improved checking against gass types
 !! -Nov 22, 2011: D.D. Added missing atmos_point deallocation statments..fixed running out of memory on large scenes.
