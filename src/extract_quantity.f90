@@ -7,6 +7,7 @@
 !! wavelength is only needed for qindex=13,14 or 15, 19 20
 !!
 !! @version ecsim 1.3.6 [synced on github as of 20.Jan.2015]
+!! Edited via vimdiff extract_quantity_bak.f90 extract_quantity.f90
 !!
 !!
 !! *SRC_FILE*
