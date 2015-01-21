@@ -16,6 +16,7 @@
 !!
 !! *LAST CHANGES*
 !!
+!! -Jan 21, 2015: I.S. Backup source code and binary check: src/extract_quantity_bak.f90 and bin/extract_quantity_bak_default are correct ones
 !! -Jan 08, 2015: I.S  Changed GitHub repository name to "DSD_addon_extract_quantity"
 !! -Nov 27, 2014: I.S. Included DSD (parameter Nsize) to be extractable, as quantity 17
 !! -Nov 30, 2011: D.D. Improved checking against gass types
