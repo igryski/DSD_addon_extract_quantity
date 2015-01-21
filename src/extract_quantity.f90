@@ -654,8 +654,8 @@ Contains
     Integer,intent(in)             :: ix,iy,qindex,qindex2
     !
     Integer                        :: irh,il,it,iz,itheta,igass
-    Real                           :: work1,work2
-    Real,dimension(:),allocatable  :: Nsize, work3_DSD
+    Real                           :: work1,work2, work3_DSD
+    Real,dimension(:),allocatable  :: Nsize
     Character(len=7)               :: waves_val
     !
     !
