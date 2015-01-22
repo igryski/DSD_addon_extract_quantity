@@ -6,3 +6,6 @@ src/*.swp
 
 # AFP files
 src/.afp*
+
+# Other files
+src/.DS_Store

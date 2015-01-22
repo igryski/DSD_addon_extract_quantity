@@ -152,7 +152,7 @@ Program extract_quantity
   Real,Dimension(:),Allocatable              :: Ze_vec
   Real,Dimension(:),Allocatable              :: ext_vec
   Real,Dimension(:),Allocatable              :: x,y,dist
-  Real,Dimension(:,:),Allocatable            :: Quantity,DSD   ! Changed rank of DSD
+  Real,Dimension(:,:),Allocatable            :: Quantity,DSD           !Igor,  Changed rank of DSD from 1 to 2
   !
   Real,Dimension(:,:),Allocatable            :: X_grid,Y_grid,weight_grid
   Real,Dimension(:,:,:),Allocatable          :: Quantity_grid 
