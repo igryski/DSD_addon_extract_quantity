@@ -9,3 +9,6 @@ src/.afp*
 
 # Other files
 src/.DS_Store
+
+# Other folders
+src/.AppleDouble
