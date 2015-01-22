@@ -6,7 +6,7 @@
 !!               qindex qindex2 (wavelength)
 !! wavelength is only needed for qindex=13,14 or 15, 19 20
 !!
-!! @version ecsim 1.3.5
+!! @version ecsim 1.3.6
 !!
 !! *SRC_FILE*
 !!
@@ -14,6 +14,7 @@
 !!
 !! *LAST CHANGES*
 !! 
+!! -Jan,22, 2014: I.S. Adding DSD as output from Nsize. Developmeent on github.com/igryski repo DSD_addon_ex...
 !! -Nov 30, 2011: D.D. Improved checking against gass types
 !! -Nov 22, 2011: D.D. Added missing atmos_point deallocation statments..fixed running out of memory on large scenes.
 !! -Nov 19, 2010: D.D. Fixed error in the calculation of g values
@@ -147,7 +148,7 @@ Program extract_quantity
   Real,Dimension(:),Allocatable              :: Ze_vec
   Real,Dimension(:),Allocatable              :: ext_vec
   Real,Dimension(:),Allocatable              :: x,y,dist
-  Real,Dimension(:,:),Allocatable            :: Quantity
+  Real,Dimension(:,:),Allocatable            :: Quantity,DSD            ! Igor, DSD is supposed to be Nszie compatible (but rank 2)
   !
   Real,Dimension(:,:),Allocatable            :: X_grid,Y_grid,weight_grid
   Real,Dimension(:,:,:),Allocatable          :: Quantity_grid 
@@ -570,6 +571,7 @@ Program extract_quantity
   Allocate(y(1:nshots))
   Allocate(dist(1:nshots))
   Allocate(Quantity(1:nz_ins,1:nshots))
+  Allocate(DSD(1:nz_ins,1:nshots))          ! I.S. Allocating DSD
   !
   allocate(xg(size(x_grid(:,iy1))))
   allocate(yg(size(y_grid(ix1,:))))
@@ -645,6 +647,7 @@ Contains
     !
     Integer                        :: irh,il,it,iz,itheta,igass
     Real                           :: work1,work2
+    Real,dimension(:)              :: work3            ! I.S. array to put Nsize in (matching dimensions)
     Real,dimension(:),allocatable  :: Nsize
     Character(len=7)               :: waves_val
     !
@@ -657,6 +660,7 @@ Contains
        !
        work1=0.0
        work2=0.0
+       work3=0.0
        !
 
        if ((qindex.gt.0).and.(qindex.lt.10)) then ! We want something not involving the scattering properties
@@ -855,6 +859,13 @@ Contains
                       nc_title='N_0'
                       units="cm^-3"
                       title="Np"
+                   else if (qindex==23) then ! I.S. We want to get Nsize out, for DSD variable. Rank is off? DSD var needed?
+                      work3=work3+Nsize
+                      work2=1.0
+                      plot_title="DSD [dummy units]"
+                      nc_title='DSD'
+                      units="dummy"
+                      title="DSD"
                    else if (qindex==18) then ! We want Ra
                       call find_irh_it_pol(data_column(iz)%T,&
                            & data_column(iz)%RH,lid_scatt_info(isc),irh,it)
