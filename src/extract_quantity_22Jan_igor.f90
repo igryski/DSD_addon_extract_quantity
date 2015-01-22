@@ -6,14 +6,19 @@
 !!               qindex qindex2 (wavelength)
 !! wavelength is only needed for qindex=13,14 or 15, 19 20
 !!
-!! @version ecsim 1.3.5
+!! @version ecsim 1.3.6 [synced on github as of 20.Jan.2015]
+!! Edited via vimdiff extract_quantity_bak.f90 extract_quantity.f90
+!!
 !!
 !! *SRC_FILE*
 !!
 !! tools/product_tools/src/extract_quantity.f90
 !!
 !! *LAST CHANGES*
-!! 
+!!
+!! -Jan 21, 2015: I.S. Backup source code and binary check: src/extract_quantity_bak.f90 and bin/extract_quantity_bak_default are correct ones
+!! -Jan 08, 2015: I.S  Changed GitHub repository name to "DSD_addon_extract_quantity"
+!! -Nov 27, 2014: I.S. Included DSD (parameter Nsize) to be extractable, as quantity 23
 !! -Nov 30, 2011: D.D. Improved checking against gass types
 !! -Nov 22, 2011: D.D. Added missing atmos_point deallocation statments..fixed running out of memory on large scenes.
 !! -Nov 19, 2010: D.D. Fixed error in the calculation of g values
@@ -125,17 +130,17 @@ Program extract_quantity
   ! Main vaiables
   !----------------
   !
-  Real                                      :: x_start,y_start,x_finish,y_finish
-  Real                                      :: phi
-  Real                                      :: h_res
+  Real                                       :: x_start,y_start,x_finish,y_finish
+  Real                                       :: phi
+  Real                                       :: h_res
   Character(len=256), Dimension (:), Pointer :: scatt_list_names
-  Character(len=10), Dimension (:), Pointer :: gasses
-  Integer                                   :: nscatt_types,n_gasses,scene_nx,scene_ny,scene_nz
+  Character(len=10), Dimension (:), Pointer  :: gasses
+  Integer                                    :: nscatt_types,n_gasses,scene_nx,scene_ny,scene_nz
   !
   Type(scatt_prop_master),Dimension(:),Allocatable   :: scatt_master_info ! structure containg scattering list info
   Type(scatterer_info),Dimension(:),Allocatable      :: rad_scatt_info    ! where the data is really stored
   Type(scatterer_info_pol),Dimension(:),Allocatable  :: lid_scatt_info    ! where the data is really stored
-  Type(scatterer_info),Dimension(:),Allocatable  :: lid_scatt_info_nopol    ! where the data is really stored
+  Type(scatterer_info),Dimension(:),Allocatable      :: lid_scatt_info_nopol    ! where the data is really stored
   !
   Type(size_dist),Dimension(:,:),Allocatable         :: global_size_dists
   Real,Dimension(:),Allocatable                      :: z_global
@@ -147,10 +152,11 @@ Program extract_quantity
   Real,Dimension(:),Allocatable              :: Ze_vec
   Real,Dimension(:),Allocatable              :: ext_vec
   Real,Dimension(:),Allocatable              :: x,y,dist
-  Real,Dimension(:,:),Allocatable            :: Quantity
+  Real,Dimension(:,:),Allocatable            :: Quantity,DSD           !Igor,  Changed rank of DSD from 1 to 2
   !
   Real,Dimension(:,:),Allocatable            :: X_grid,Y_grid,weight_grid
   Real,Dimension(:,:,:),Allocatable          :: Quantity_grid 
+  Real,Dimension(:,:),Allocatable            :: Quantity_grid_DSD      !Igor add, Quantity_grid_DSD (for Quantity_DSD), compiles ok
   !
   Real,Dimension(:),Allocatable              :: z_ins ! instrument resolution altitude vector (km)
   Integer                                    :: nz_ins
@@ -206,7 +212,7 @@ Program extract_quantity
      !
      Subroutine getarg(n,arg)
        Integer,Intent(in)                  :: n
-       Character(len=*),Intent(out)           :: arg
+       Character(len=*),Intent(out)        :: arg
      End Subroutine getarg
      !   
      subroutine find_intercepts_2d(nx,ny,x,y,xo,yo,x1,y1,phi,xi,yi,ri,ni)
@@ -218,7 +224,7 @@ Program extract_quantity
        real,intent(in)       :: xo,yo,phi,x1,y1
        !
        real,dimension(:),pointer  :: xi,yi,ri
-       integer,intent(out)   :: ni
+       integer,intent(out)        :: ni
        !
      end subroutine find_intercepts_2d
   End Interface
@@ -442,15 +448,19 @@ Program extract_quantity
   iy1=min(iy1_tmp,iy2_tmp)
   iy2=max(iy1_tmp,iy2_tmp)
   !
+  ! Igor: You need to allocate the array data and then initialize it to zero!
+
   Allocate(X_grid(ix1:ix2,iy1:iy2))
   Allocate(Y_grid(ix1:ix2,iy1:iy2))
   Allocate(Quantity_grid(ix1:ix2,iy1:iy2,1:nz_ins))
+  Allocate(Quantity_grid_DSD(ix1:ix2,1:nz_ins))                   ! Igor, define array dimensions for DSD population. Changed.
   Allocate(weight_grid(ix1:ix2,iy1:iy2))
   !
   X_grid=0.0
   Y_grid=0.0
   Quantity_grid=0.0
   weight_grid=0.0
+  Quantity_grid_DSD=0.0  ! Igor
   !
   Do iz=1,nz_ins
      Call Nullify_atmos_point(data_column(iz))
@@ -570,6 +580,7 @@ Program extract_quantity
   Allocate(y(1:nshots))
   Allocate(dist(1:nshots))
   Allocate(Quantity(1:nz_ins,1:nshots))
+  Allocate(DSD(1:nz_ins,1:nshots))         ! Igor, allocating DSD variable (maybe choose diff ranks?)
   !
   allocate(xg(size(x_grid(:,iy1))))
   allocate(yg(size(y_grid(ix1,:))))
@@ -644,7 +655,7 @@ Contains
     Integer,intent(in)             :: ix,iy,qindex,qindex2
     !
     Integer                        :: irh,il,it,iz,itheta,igass
-    Real                           :: work1,work2
+    Real                           :: work1,work2, work3_DSD
     Real,dimension(:),allocatable  :: Nsize
     Character(len=7)               :: waves_val
     !
@@ -657,6 +668,7 @@ Contains
        !
        work1=0.0
        work2=0.0
+       work3_DSD=0.0  ! Igor
        !
 
        if ((qindex.gt.0).and.(qindex.lt.10)) then ! We want something not involving the scattering properties
@@ -855,6 +867,16 @@ Contains
                       nc_title='N_0'
                       units="cm^-3"
                       title="Np"
+                      ! Igor tries to add DSD to be extractable
+                      !
+                   else if (qindex==23) then ! We want DSD
+                      work3_DSD=sum(Nsize)
+                      work2=1.0 
+                      plot_title="DSD [dummy_unit]"
+                      nc_title='DSD'
+                      units="none"
+                      title="DSD by Igor" ! Long name
+                      !
                    else if (qindex==18) then ! We want Ra
                       call find_irh_it_pol(data_column(iz)%T,&
                            & data_column(iz)%RH,lid_scatt_info(isc),irh,it)
@@ -873,7 +895,7 @@ Contains
                       return
                    endif
                    !
-                   DeAllocate(Nsize)
+                   !DeAllocate(Nsize)
                    !
                 endif
              endif
@@ -885,6 +907,8 @@ Contains
                 Quantity_grid(ix,iy,iz)=(9.0/16.0/pi*work1/work2)**(0.25)
              else if (qindex==18) then
                 Quantity_grid(ix,iy,iz)=sqrt((work2/work1)/pi)
+!             else if (qindex==23) then  ! Igor calculate DSD
+!                Quantity_grid_DSD(ix,isc)=work3_DSD   ! Igor: delcare this as a 2-dim array, bc that is how you allocated it.
              else
                 Quantity_grid(ix,iy,iz)=work1/work2
              endif
@@ -927,6 +951,7 @@ Contains
              !
              work1=0.0
              work2=0.0
+             !work3_DSD=0.0    ! Igor, we need to declare it as zero here as well, as starting value.
              !
              Do isc=1,nscatt_types
                 if ((qindex2.lt.1).or.(qindex2==isc)) then
@@ -958,8 +983,7 @@ Contains
                          !
                          work1=work1+Sum(Nsize*Ze_vec)
                          work2=1.0
-                      else 
-                         !
+                         else  
                          work1=work1+Sum(Nsize*ext_vec)*1.0e-4
                          work2=1.0
                          !
@@ -1017,7 +1041,7 @@ Contains
     !
     Integer                          :: i,nargs
     !
-    Character(len=160)                :: arg_str
+    Character(len=160)               :: arg_str
     Character(len=190)               :: error_str
     Character(len=100)               :: error_str2
     !
@@ -1408,6 +1432,8 @@ end Program extract_quantity
        error_str= 'Error in nf90_put_var5'
        goto 400
     endif
+ 
+
     !
     ! Close the file
     !
