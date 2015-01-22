@@ -18,7 +18,7 @@
 !!
 !! -Jan 21, 2015: I.S. Backup source code and binary check: src/extract_quantity_bak.f90 and bin/extract_quantity_bak_default are correct ones
 !! -Jan 08, 2015: I.S  Changed GitHub repository name to "DSD_addon_extract_quantity"
-!! -Nov 27, 2014: I.S. Included DSD (parameter Nsize) to be extractable, as quantity 17
+!! -Nov 27, 2014: I.S. Included DSD (parameter Nsize) to be extractable, as quantity 23
 !! -Nov 30, 2011: D.D. Improved checking against gass types
 !! -Nov 22, 2011: D.D. Added missing atmos_point deallocation statments..fixed running out of memory on large scenes.
 !! -Nov 19, 2010: D.D. Fixed error in the calculation of g values
@@ -130,17 +130,17 @@ Program extract_quantity
   ! Main vaiables
   !----------------
   !
-  Real                                      :: x_start,y_start,x_finish,y_finish
-  Real                                      :: phi
-  Real                                      :: h_res
+  Real                                       :: x_start,y_start,x_finish,y_finish
+  Real                                       :: phi
+  Real                                       :: h_res
   Character(len=256), Dimension (:), Pointer :: scatt_list_names
-  Character(len=10), Dimension (:), Pointer :: gasses
-  Integer                                   :: nscatt_types,n_gasses,scene_nx,scene_ny,scene_nz
+  Character(len=10), Dimension (:), Pointer  :: gasses
+  Integer                                    :: nscatt_types,n_gasses,scene_nx,scene_ny,scene_nz
   !
   Type(scatt_prop_master),Dimension(:),Allocatable   :: scatt_master_info ! structure containg scattering list info
   Type(scatterer_info),Dimension(:),Allocatable      :: rad_scatt_info    ! where the data is really stored
   Type(scatterer_info_pol),Dimension(:),Allocatable  :: lid_scatt_info    ! where the data is really stored
-  Type(scatterer_info),Dimension(:),Allocatable  :: lid_scatt_info_nopol    ! where the data is really stored
+  Type(scatterer_info),Dimension(:),Allocatable      :: lid_scatt_info_nopol    ! where the data is really stored
   !
   Type(size_dist),Dimension(:,:),Allocatable         :: global_size_dists
   Real,Dimension(:),Allocatable                      :: z_global
@@ -148,15 +148,15 @@ Program extract_quantity
   Type(atmos_point),Dimension(:),Allocatable :: data_column                ! structure containing column data
   !
   Real,Dimension(:),Allocatable              :: fall_vel
-  Real,Dimension(:),Allocatable              :: Nsize,Quantity_DSD    ! Igor added Quantity_DSD (same dimensiones as Nsize)
+  Real,Dimension(:),Allocatable              :: Nsize
   Real,Dimension(:),Allocatable              :: Ze_vec
   Real,Dimension(:),Allocatable              :: ext_vec
   Real,Dimension(:),Allocatable              :: x,y,dist
-  Real,Dimension(:,:),Allocatable            :: Quantity
+  Real,Dimension(:,:),Allocatable            :: Quantity,DSD   ! Changed rank of DSD
   !
   Real,Dimension(:,:),Allocatable            :: X_grid,Y_grid,weight_grid
   Real,Dimension(:,:,:),Allocatable          :: Quantity_grid 
-  Real,Dimension(:,:),Allocatable            :: Quantity_grid_DSD     ! Igor add, Quantity_grud_DSD (for Quantity_DSD)
+  Real,Dimension(:,:),Allocatable            :: Quantity_grid_DSD      !Igor add, Quantity_grid_DSD (for Quantity_DSD), compiles ok
   !
   Real,Dimension(:),Allocatable              :: z_ins ! instrument resolution altitude vector (km)
   Integer                                    :: nz_ins
@@ -212,7 +212,7 @@ Program extract_quantity
      !
      Subroutine getarg(n,arg)
        Integer,Intent(in)                  :: n
-       Character(len=*),Intent(out)           :: arg
+       Character(len=*),Intent(out)        :: arg
      End Subroutine getarg
      !   
      subroutine find_intercepts_2d(nx,ny,x,y,xo,yo,x1,y1,phi,xi,yi,ri,ni)
@@ -224,7 +224,7 @@ Program extract_quantity
        real,intent(in)       :: xo,yo,phi,x1,y1
        !
        real,dimension(:),pointer  :: xi,yi,ri
-       integer,intent(out)   :: ni
+       integer,intent(out)        :: ni
        !
      end subroutine find_intercepts_2d
   End Interface
@@ -580,6 +580,7 @@ Program extract_quantity
   Allocate(y(1:nshots))
   Allocate(dist(1:nshots))
   Allocate(Quantity(1:nz_ins,1:nshots))
+  Allocate(DSD(1:nz_ins,1:nshots))         ! Igor, allocating DSD variable (maybe choose diff ranks?)
   !
   allocate(xg(size(x_grid(:,iy1))))
   allocate(yg(size(y_grid(ix1,:))))
