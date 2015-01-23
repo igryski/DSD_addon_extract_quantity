@@ -647,7 +647,7 @@ Contains
     !
     Integer                        :: irh,il,it,iz,itheta,igass
     Real                           :: work1,work2
-    Real,dimension(:)              :: work3            ! I.S. array to put Nsize in (matching dimensions)
+    Real,dimension(:),allocatable  :: work3            ! I.S. array to put Nsize in (matching dimensions). ! Added allocatable
     Real,dimension(:),allocatable  :: Nsize
     Character(len=7)               :: waves_val
     !
