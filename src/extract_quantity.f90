@@ -68,6 +68,7 @@
 !! -18 ===> R_a [microns]"
 !! -19 ===> g
 !! -20 ===> omega (SS_alb) 
+!! -23 ===> DSD
 !! -100 ==> Idealized Radar reflectivity [mm$^6$/m$^3$] (94 GHz).
 !! -101 ==> Attenuation at 94 GHz [1/m].
 !! -102 ==> Idealized Radar reflectivity [mm$^6$/m$^3$] (32 GHz).
@@ -780,7 +781,7 @@ Contains
                       nc_title='Mean_Maximum_Dimension'
                       units="microns"
                       title="Mean Maximum Dimension"     
-                   else if (qindex==13) then ! Visable extinction
+                   else if (qindex==13) then ! Visible extinction
                       call find_irh_it_pol(data_column(iz)%T,&
                            & data_column(iz)%RH,lid_scatt_info(isc),irh,it)
                       !
@@ -879,7 +880,7 @@ Contains
                    else
                       write(error_str,'(a20,i5)')
                       call write_error( error_str)
-                      call write_error('Run program with not arguments to get help')
+                      call write_error('Run program without arguments to get help')
                       call exit(1)
                       return
                    endif
@@ -938,6 +939,7 @@ Contains
              !
              work1=0.0
              work2=0.0
+             !work3=0.0   ! I.S. reseting the work3 array to be in the following. First comment this out. 
              !
              Do isc=1,nscatt_types
                 if ((qindex2.lt.1).or.(qindex2==isc)) then
@@ -988,7 +990,9 @@ Contains
                 Quantity_grid(ix,iy,iz)=0.0
              else
                 if (qindex.ne.20) then
-                   Quantity_grid(ix,iy,iz)=work1/work2
+                   Quantity_grid(ix,iy,iz)=work1/work2    
+!!                if (qindex.eq.23) then              ! I.S. Will this work for qindex=23, DSD?
+!!                   Quantity_grid(ix,iy,iz)=work3 
                 else
                    Quantity_grid(ix,iy,iz)=1.0-work1/work2
                 endif
@@ -997,7 +1001,7 @@ Contains
           else
              !
              write(*,*) 'Unknown Option ',qindex
-             write(*,*) 'Run program with not arguments to get help'
+             write(*,*) 'Run program without arguments to get help'
              call exit(1)
              return
              !
