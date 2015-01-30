@@ -1,5 +1,5 @@
 !!
-!! *PROGRAM* extract_quantity
+!! *PROGRAM* extract_quantity (GH sync test)
 !!
 !! *USAGE*: extract_quantity inputfile.uff outfile.nc x1 y1 x2 y2
 !!               z1(km) z2(km) vert_res(km)  
@@ -572,7 +572,7 @@ Program extract_quantity
   Allocate(y(1:nshots))
   Allocate(dist(1:nshots))
   Allocate(Quantity(1:nz_ins,1:nshots))
-  Allocate(DSD(1:nz_ins,1:nshots))          ! I.S. Allocating DSD
+  Allocate(DSD(1:nz_ins,1:nshots))          ! I.S. Allocating DSD (dimnension ok?)
   !
   allocate(xg(size(x_grid(:,iy1))))
   allocate(yg(size(y_grid(ix1,:))))
@@ -861,7 +861,14 @@ Contains
                       units="cm^-3"
                       title="Np"
                    else if (qindex==23) then ! I.S. We want to get Nsize out, for DSD variable. Rank is off? DSD var needed?
-                      work3=work3+Nsize
+
+                          call find_irh_it_pol(data_column(iz)%T,&     ! subrotutine called for SS_alb
+                           & data_column(iz)%RH,lid_scatt_info(isc),irh,it)
+                      !
+                      work1=work1+Sum(lid_scatt_info(isc)%abs(1,it,irh,:)*Nsize)*1.0e-4 
+                      !work2=work2+Sum(lid_scatt_info(isc)%ext(1,it,irh,:)*Nsize)*1.0e-4
+
+                      !work3=work3+Nsize
                       work2=1.0
                       plot_title="DSD [dummy units]"
                       nc_title='DSD'
