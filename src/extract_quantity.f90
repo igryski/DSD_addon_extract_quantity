@@ -1,5 +1,5 @@
 !!
-!! *PROGRAM* extract_quantity (GH sync test)
+!! *PROGRAM* extract_quantity
 !!
 !! *USAGE*: extract_quantity inputfile.uff outfile.nc x1 y1 x2 y2
 !!               z1(km) z2(km) vert_res(km)  
