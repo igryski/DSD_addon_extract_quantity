@@ -862,14 +862,14 @@ Contains
                       title="Np"
                    else if (qindex==23) then ! I.S. We want to get Nsize out, for DSD variable. Rank is off? DSD var needed?
 
-                          call find_irh_it_pol(data_column(iz)%T,&     ! subrotutine called for SS_alb
+                          call find_irh_it_pol(data_column(iz)%T,&     ! subrotutine used to call for SS_alb (x-check for DSD)
                            & data_column(iz)%RH,lid_scatt_info(isc),irh,it)
                       !
                       work1=work1+Sum(lid_scatt_info(isc)%abs(1,it,irh,:)*Nsize)*1.0e-4 
                       !work2=work2+Sum(lid_scatt_info(isc)%ext(1,it,irh,:)*Nsize)*1.0e-4
 
                       !work3=work3+Nsize
-                      work2=1.0
+                      work2=1.0   ! Check for usage of work2 value in qindex==23. work3 needed?
                       plot_title="DSD [dummy units]"
                       nc_title='DSD'
                       units="dummy"
