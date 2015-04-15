@@ -497,7 +497,7 @@ Program extract_quantity
      Allocate(Quantity_grid_ang(ix1:ix2,iy1:iy2,1:nz_ins,nangles))
      Quantity_grid_ang=0.0
   endif
-!
+  !
   if (qindex==51) then
      Allocate(Quantity_grid_ang(ix1:ix2,iy1:iy2,1:nz_ins,nangles))
      Quantity_grid_ang=0.0
@@ -1004,7 +1004,7 @@ Contains
           if (work2==0.0) then
              if (qindex==50) then
                 Quantity_grid_ang(ix,iy,iz,:)=0.0
-             if (qindex==51) then
+             else if (qindex==51) then
                 Quantity_grid_ang(ix,iy,iz,:)=0.0
              else 
                 Quantity_grid(ix,iy,iz)=0.0
@@ -1130,7 +1130,7 @@ Contains
           endif
           !
        endif
-    enddo
+    Enddo
     !
     if (allocated(work_ar)) then
        DeAllocate(work_ar)
