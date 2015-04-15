@@ -4,9 +4,9 @@
 !! *USAGE*: extract_quantity inputfile.uff outfile.nc x1 y1 x2 y2
 !!               z1(km) z2(km) vert_res(km)  
 !!               qindex qindex2 (wavelength)
-!! wavelength is only needed for qindex=13,14 or 15, 19 20 or 50
+!! wavelength is only needed for qindex=13,14 or 15, 19 20
 !!
-!! @version ecsim 1.4
+!! @version ecsim 1.3.6
 !!
 !! *SRC_FILE*
 !!
@@ -14,9 +14,8 @@
 !!
 !! *LAST CHANGES*
 !! 
-!! -Feb 26, 2014: D.D. Added phase function output option
-!! -Apr 03, 2013: D.D. Fixed error in generating reflectivity at 32 or 3 GHz (atteuation was output instead !!)
-!! -Nov 24, 2011: D.D. Fixes added on Nov 22 were incomplete
+!! -Jan,22, 2014: I.S. Adding DSD as output from Nsize. Developmeent on github.com/igryski repo DSD_addon_ex...
+!! -Nov 30, 2011: D.D. Improved checking against gass types
 !! -Nov 22, 2011: D.D. Added missing atmos_point deallocation statments..fixed running out of memory on large scenes.
 !! -Nov 19, 2010: D.D. Fixed error in the calculation of g values
 !! -Sep 23, 2010: D.D. Updated a few info and error messages to reflect new options 
@@ -69,13 +68,14 @@
 !! -18 ===> R_a [microns]"
 !! -19 ===> g
 !! -20 ===> omega (SS_alb) 
-!! -50 ===> Phase function 
+!! -23 ===> DSD
 !! -100 ==> Idealized Radar reflectivity [mm$^6$/m$^3$] (94 GHz).
 !! -101 ==> Attenuation at 94 GHz [1/m].
 !! -102 ==> Idealized Radar reflectivity [mm$^6$/m$^3$] (32 GHz).
 !! -103 ==> Attenuation at 32 GHz [1/m].
 !! -104 ==> Idealized Radar reflectivity [mm$^6$/m$^3$] (5 GHz).
 !! -105 ==> Attenuation at 5 GHz [1/m].
+!!
 !! 
 !! If the incorrect number of commandline arguments are given then
 !! an error message is printed along with a help message.
@@ -83,8 +83,7 @@
 !! *OUTPUT*
 !!
 !! OUTFILENAME will contain the output information which may then
-!! be plotted using plot_slice (except if phase function output is selected).
-!! The output is in netcdf.
+!! be plotted using plot_slice. The output is in netcdf.
 !! 
 !
 !  Copyright KNMI for ESA
@@ -139,9 +138,6 @@ Program extract_quantity
   Type(scatterer_info),Dimension(:),Allocatable      :: rad_scatt_info    ! where the data is really stored
   Type(scatterer_info_pol),Dimension(:),Allocatable  :: lid_scatt_info    ! where the data is really stored
   Type(scatterer_info),Dimension(:),Allocatable  :: lid_scatt_info_nopol    ! where the data is really stored
-  Type(scatterer_info),Dimension(:),Allocatable  :: lid_scatt_info_nopol_angs ! Interpolated to a standard angular grid
-  Integer                                        :: nangles
-  Real,dimension(:),Allocatable                  :: angles
   !
   Type(size_dist),Dimension(:,:),Allocatable         :: global_size_dists
   Real,Dimension(:),Allocatable                      :: z_global
@@ -153,12 +149,10 @@ Program extract_quantity
   Real,Dimension(:),Allocatable              :: Ze_vec
   Real,Dimension(:),Allocatable              :: ext_vec
   Real,Dimension(:),Allocatable              :: x,y,dist
-  Real,Dimension(:,:),Allocatable            :: Quantity
-  Real,Dimension(:,:,:),Allocatable            :: Quantity_ang
+  Real,Dimension(:,:),Allocatable            :: Quantity,DSD            ! Igor, DSD is supposed to be Nszie compatible (but rank 2)
   !
   Real,Dimension(:,:),Allocatable            :: X_grid,Y_grid,weight_grid
   Real,Dimension(:,:,:),Allocatable          :: Quantity_grid 
-  Real,Dimension(:,:,:,:),Allocatable          :: Quantity_grid_ang 
   !
   Real,Dimension(:),Allocatable              :: z_ins ! instrument resolution altitude vector (km)
   Integer                                    :: nz_ins
@@ -167,7 +161,7 @@ Program extract_quantity
   ! Misc working variables 
   !-------------------------
   !
-  Integer                              :: status,i,ix,iy,iz,isc,j,ia
+  Integer                              :: status,i,ix,iy,iz,isc,j
   Integer                              :: ix1,ix2,iy1,iy2,iix,iiy
   Integer                              :: ix1_tmp,iy1_tmp
   Integer                              :: ix2_tmp,iy2_tmp
@@ -286,8 +280,6 @@ Program extract_quantity
   ! Open and read the the UFF file header information
   !---------------------------------------------------
   !
-  call write_info('Reading the uff file :'//trim(adjustl(infilename)))
-  !
   Call read_uff_header_info(infilename,nscatt_types,scatt_list_names,&
        & n_gasses,gasses,scene_nx,scene_ny,scene_nz,&
        & x1,y1,lat1,long1,z1,&
@@ -392,51 +384,30 @@ Program extract_quantity
      ! Information
      !-------------------------------------
      !
-     if (qindex.eq.19) then
-        Allocate(lid_scatt_info_nopol(1:nscatt_types))
-     else if (qindex.eq.50) then
-        Allocate(lid_scatt_info_nopol(1:nscatt_types))
-        Allocate(lid_scatt_info_nopol_angs(1:nscatt_types))
-     else
+     if (qindex.ne.19) then
         Allocate(lid_scatt_info(1:nscatt_types))
+     else
+        Allocate(lid_scatt_info_nopol(1:nscatt_types))
      endif
-     !
      !
      if (waves1.le.0.0) then 
         waves1=0.353
      endif
      
      waves=waves1
-     !
-     if (qindex==50) then
-        nangles=1801
-        allocate(angles(1:nangles))
-        do ia=1,nangles
-           angles(ia)=(ia-1)*180.0/(nangles-1)
-        enddo
-     endif
-     !
      Do i=1,nscatt_types
         !
-        if (qindex.eq.19) then
-           call find_scatt_at_waves(7,scatt_master_info(i),lid_scatt_info_nopol(i),&
-                & 2,waves)
-        else if (qindex.eq.50) then
-           !
-           call find_scatt_at_waves(7,scatt_master_info(i),lid_scatt_info_nopol(i),&
-                & 2,waves)
-           !
-           call find_scatt_at_angle(lid_scatt_info_nopol_angs(i),lid_scatt_info_nopol(i),nangles)
-           !
-        else
+        if (qindex.ne.19) then
            call find_scatt_at_waves_pol(7,scatt_master_info(i),lid_scatt_info(i),&
+                & 2,waves)
+        else
+           call find_scatt_at_waves(7,scatt_master_info(i),lid_scatt_info_nopol(i),&
                 & 2,waves)
         endif
         !
      Enddo
      !
   endif
-  !
   !
   !---------------------------------------------
   ! Read the global scattering property section 
@@ -483,11 +454,6 @@ Program extract_quantity
   Quantity_grid=0.0
   weight_grid=0.0
   !
-  if (qindex==50) then
-     Allocate(Quantity_grid_ang(ix1:ix2,iy1:iy2,1:nz_ins,nangles))
-     Quantity_grid_ang=0.0
-  endif
-  !
   Do iz=1,nz_ins
      Call Nullify_atmos_point(data_column(iz))
   Enddo
@@ -524,11 +490,6 @@ Program extract_quantity
            if (status.ne.0) goto 200
            !
         Endif
-        !
-        do iz=1,nz_ins
-           Call deallocate_atmos_point(data_column(iz))
-        enddo
-        !
      Enddo
   Enddo
   !
@@ -611,11 +572,7 @@ Program extract_quantity
   Allocate(y(1:nshots))
   Allocate(dist(1:nshots))
   Allocate(Quantity(1:nz_ins,1:nshots))
-  !
-  if (qindex==50) then
-     Allocate(Quantity_ang(1:nz_ins,1:nshots,1:nangles))
-     Quantity_ang=0.0
-  endif
+  Allocate(DSD(1:nz_ins,1:nshots))          ! I.S. Allocating DSD (dimnension ok?)
   !
   allocate(xg(size(x_grid(:,iy1))))
   allocate(yg(size(y_grid(ix1,:))))
@@ -659,17 +616,9 @@ Program extract_quantity
      xo=xo+dr*cosd(phi)
      yo=yo+dr*sind(phi)
      !
-     if (qindex.ne.50) then
-        do iz=1,nz_ins
-           Quantity(iz,i)=Sum(Quantity_grid(:,:,iz)*weight_grid)
-        enddo
-     else
-        do iz=1,nz_ins
-           do ia=1,nangles
-              Quantity_ang(iz,i,ia)=Sum(Quantity_grid_ang(:,:,iz,ia)*weight_grid)
-           enddo
-        enddo
-     endif       
+     do iz=1,nz_ins
+        Quantity(iz,i)=Sum(Quantity_grid(:,:,iz)*weight_grid)
+     enddo
      !
   enddo
   !
@@ -681,12 +630,8 @@ Program extract_quantity
      call exit(1)
   endif
 
-  !  call write_results(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,title)
-  if (qindex.ne.50) then
-     call write_results_ncdf(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,nc_title,title,units,plot_title)
-  else
-     call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_ang,nc_title,title,units,plot_title)
-  endif
+!  call write_results(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,title)
+  call write_results_ncdf(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,nc_title,title,units,plot_title)
  !
   !
   !
@@ -703,29 +648,22 @@ Contains
     !
     Integer                        :: irh,il,it,iz,itheta,igass
     Real                           :: work1,work2
-    Real,dimension(:),allocatable  :: work_ar                           
+    Real,dimension(:),allocatable  :: work3            ! I.S. array to put Nsize in (matching dimensions). ! Added allocatable
     Real,dimension(:),allocatable  :: Nsize
     Character(len=7)               :: waves_val
     !
     !
-    !
-    if (qindex==50) then 
-       allocate(work_ar(1:nangles))
-    endif
-    ;
     write(unit=waves_val, fmt='(I7)') nint(waves1*1000)
-    !
+     
     Do iz=1,nz_ins
        !
        ! Populate the output arrays
        !
        work1=0.0
        work2=0.0
+       work3=0.0
        !
-       if (qindex==50) then 
-          work_ar(:)=0.0
-       endif
-       !
+
        if ((qindex.gt.0).and.(qindex.lt.10)) then ! We want something not involving the scattering properties
           !
           work2=1.0
@@ -754,7 +692,7 @@ Contains
              units="-"
              plot_title="X(H\D2\UO)"
              Do i=1,n_gasses
-                If ((gasses(i)==' h2o').Or.(gasses(i).Eq.' H2O').or.(gasses(i).Eq.'H2O ')) Then
+                If ((trim(adjustl(gasses(i)))=='h2o').Or.(trim(adjustl(gasses(i))).Eq.'H2O')) Then
                    igass=i
                 Endif
              Enddo
@@ -773,7 +711,7 @@ Contains
              title="X(O3)"
              igass=0
              Do i=1,n_gasses
-                If ((gasses(i)==' o3 ').Or.(gasses(i).Eq.' O3 ').or.(gasses(i).Eq.'O3  ')) Then
+                If ((trim(adjustl(gasses(i)))=='o3').Or.(trim(adjustl(gasses(i))).Eq.'O3')) Then
                    igass=i
                 Endif
              Enddo
@@ -798,18 +736,15 @@ Contains
           !
        else if ((qindex.ge.10).and.(qindex.lt.100)) then ! We want some IR/Vis property of the scatterers
           !
-          !
           Do isc=1,nscatt_types
              if ((qindex2.lt.1).or.(qindex2==isc)) then
                 If ((Associated(data_column(iz)%size_dists(isc)%N_bin)).Or.&
                      (Associated(global_size_dists(isc,iz)%N_bin))) Then
                    !
-                   if (qindex.eq.19) then
-                      Allocate(Nsize(1:lid_scatt_info_nopol(isc)%n_sizes))
-                   else if (qindex.eq.50) then
-                      Allocate(Nsize(1:lid_scatt_info_nopol_angs(isc)%n_sizes))
-                   else
+                   if (qindex.ne.19) then
                       Allocate(Nsize(1:lid_scatt_info(isc)%n_sizes))
+                   else
+                      Allocate(Nsize(1:lid_scatt_info_nopol(isc)%n_sizes))
                    endif
                    Nsize(:)=0.0
                    !
@@ -846,7 +781,7 @@ Contains
                       nc_title='Mean_Maximum_Dimension'
                       units="microns"
                       title="Mean Maximum Dimension"     
-                   else if (qindex==13) then ! Visable extinction
+                   else if (qindex==13) then ! Visible extinction
                       call find_irh_it_pol(data_column(iz)%T,&
                            & data_column(iz)%RH,lid_scatt_info(isc),irh,it)
                       !
@@ -897,18 +832,6 @@ Contains
                       units='-'
                       title='Ass. factor'//trim(waves_val)//' nm'
                       !
-                   else if (qindex==50) then ! The Phase Function
-                      nc_title="P11"       
-                      call find_irh_it(data_column(iz)%T,&
-                           & data_column(iz)%RH,lid_scatt_info_nopol_angs(isc),irh,it)
-                      !
-                      work1=Sum(lid_scatt_info_nopol_angs(isc)%ext(1,it,irh,:)*Nsize)
-                      work2=work2+work1
-                      !
-                      do i=1,lid_scatt_info_nopol_angs(isc)%n_angles
-                         work_ar(i)=work_ar(i)+work1*Sum(lid_scatt_info_nopol_angs(isc)%p11(1,it,irh,:,i)*Nsize)
-                      enddo
-                      !
                    else if (qindex==15) then ! backscatter
                       call find_irh_it_pol(data_column(iz)%T,&
                            & data_column(iz)%RH,lid_scatt_info(isc),irh,it)
@@ -937,6 +860,20 @@ Contains
                       nc_title='N_0'
                       units="cm^-3"
                       title="Np"
+                   else if (qindex==23) then ! I.S. We want to get Nsize out, for DSD variable. Rank is off? DSD var needed?
+
+                          call find_irh_it_pol(data_column(iz)%T,&     ! subrotutine used to call for SS_alb (x-check for DSD)
+                           & data_column(iz)%RH,lid_scatt_info(isc),irh,it)
+                      !
+                      work1=work1+Sum(lid_scatt_info(isc)%abs(1,it,irh,:)*Nsize)*1.0e-4 
+                      !work2=work2+Sum(lid_scatt_info(isc)%ext(1,it,irh,:)*Nsize)*1.0e-4
+
+                      !work3=work3+Nsize
+                      work2=1.0   ! Check for usage of work2 value in qindex==23. work3 needed?
+                      plot_title="DSD [dummy units]"
+                      nc_title='DSD'
+                      units="dummy"
+                      title="DSD"
                    else if (qindex==18) then ! We want Ra
                       call find_irh_it_pol(data_column(iz)%T,&
                            & data_column(iz)%RH,lid_scatt_info(isc),irh,it)
@@ -950,7 +887,7 @@ Contains
                    else
                       write(error_str,'(a20,i5)')
                       call write_error( error_str)
-                      call write_error('Run program with not arguments to get help')
+                      call write_error('Run program without arguments to get help')
                       call exit(1)
                       return
                    endif
@@ -960,25 +897,17 @@ Contains
                 endif
              endif
           enddo
-          !
           if (work2==0.0) then
-             if (qindex==50) then
-                Quantity_grid_ang(ix,iy,iz,:)=0.0
-             else 
-                Quantity_grid(ix,iy,iz)=0.0
-             endif
+             Quantity_grid(ix,iy,iz)=0.0
           else
              if (qindex==16) then
                 Quantity_grid(ix,iy,iz)=(9.0/16.0/pi*work1/work2)**(0.25)
              else if (qindex==18) then
                 Quantity_grid(ix,iy,iz)=sqrt((work2/work1)/pi)
-             else if (qindex==50) then
-                Quantity_grid_ang(ix,iy,iz,:)=work_ar(:)/work2
              else
                 Quantity_grid(ix,iy,iz)=work1/work2
              endif
           endif
-          !
        else if (qindex.ge.100) then
           !
           if ((qindex.ge.100).and.(qindex.le.105)) then   ! we want to calculate the reflectivity
@@ -1017,9 +946,10 @@ Contains
              !
              work1=0.0
              work2=0.0
+             !work3=0.0   ! I.S. reseting the work3 array to be in the following. First comment this out. 
              !
              Do isc=1,nscatt_types
-                If ((qindex2.lt.1).or.(qindex2==isc)) then
+                if ((qindex2.lt.1).or.(qindex2==isc)) then
                    If ((Associated(data_column(iz)%size_dists(isc)%N_bin)).Or.&
                         (Associated(global_size_dists(isc,iz)%N_bin))) Then
                       Allocate(Nsize(1:rad_scatt_info(isc)%n_sizes))
@@ -1044,10 +974,7 @@ Contains
 !!$                      write(*,*) '-------------'
 !!$                      write(*,*) Nsize/1.0e+4
                       !
-                      !
-                      ! D.D. April 03, 2013
-                      !
-                      if ((qindex==100).or.(qindex==102).or.(qindex==104)) then
+                      if (qindex==100) then
                          !
                          work1=work1+Sum(Nsize*Ze_vec)
                          work2=1.0
@@ -1070,7 +997,9 @@ Contains
                 Quantity_grid(ix,iy,iz)=0.0
              else
                 if (qindex.ne.20) then
-                   Quantity_grid(ix,iy,iz)=work1/work2
+                   Quantity_grid(ix,iy,iz)=work1/work2    
+!!                if (qindex.eq.23) then              ! I.S. Will this work for qindex=23, DSD?
+!!                   Quantity_grid(ix,iy,iz)=work3 
                 else
                    Quantity_grid(ix,iy,iz)=1.0-work1/work2
                 endif
@@ -1079,7 +1008,7 @@ Contains
           else
              !
              write(*,*) 'Unknown Option ',qindex
-             write(*,*) 'Run program with not arguments to get help'
+             write(*,*) 'Run program without arguments to get help'
              call exit(1)
              return
              !
@@ -1087,11 +1016,6 @@ Contains
           !
        endif
     enddo
-    !
-    if (allocated(work_ar)) then
-       DeAllocate(work_ar)
-    endif
-    !
     return
   end subroutine populate
   !
@@ -1209,7 +1133,7 @@ Contains
     Endif
     !
     if (nargs.eq.12) then 
-       if ((qindex.eq.13).or.(qindex.eq.14).or.(qindex.eq.15).or.(qindex.eq.19).or.(qindex.eq.20).or.(qindex.eq.50)) then
+       if ((qindex.eq.13).or.(qindex.eq.14).or.(qindex.eq.15).or.(qindex.eq.19).or.(qindex.eq.20)) then
           If (status == 0) Then
              Call getarg(12,arg_str)
              error_str2='Error in index of waves to extract'
@@ -1264,7 +1188,6 @@ Contains
        call write_info( "18 ===> R_a [microns]")
        call write_info( "19 ===> g")
        call write_info( "20 ===> omega (SS_alb)")
-       call write_info( "50 ===> Phase Function")
        call write_info( '100 ==> Idealized Radar reflectivity [mm^6/m^3]')
        call write_info( '101 ==> Attenuation at 94 GHz [1/m].')
        call write_info( '102 ==> Idealized Radar reflectivity [mm$^6$/m$^3$] (32 GHz).')
@@ -1525,241 +1448,6 @@ end Program extract_quantity
     Return
     
   End Subroutine write_results_ncdf
-  !
-  Subroutine write_results_ncdf_ang(filename,nmax,n,Nz,na,x,y,dist,z,angles,Quant_ang,nc_title,title,units,plot_title)
-    !
-    use typeSizes
-    use netcdf
-    Use write_messages
-    !
-    implicit none
-    !
-    Character(len=*),intent(in)    :: filename
-    Integer,intent(in)             :: n,nmax
-    Integer,intent(in)             :: Nz,na
-    Real,intent(in)                :: x(nmax),y(nmax),dist(nmax),z(Nz)
-    Real,intent(in)                :: angles(na)
-    Real,intent(in)                :: Quant_ang(Nz,nmax,na)
-    Character(len=*),intent(in)    :: nc_title,title,units,plot_title
-    !
-    Integer                        :: i,j
-    !
-    Integer :: ncid, status
-    !
-    integer :: GroundDist, Altitude, Angle
-    integer :: XDistId, YDistId, AngleId,AlongTrackDistId, HeightId, QuantId
-    Character(len=190)               :: error_str
-    !
-    ! Assume the file does not exist;
-    ! If you want to check, you need to use the nf90_open function
-    status = nf90_create(filename, 0, ncid)
-    if (status /= 0) then 
-       error_str='error in nf90_create'
-       goto 400
-    endif
-    !
-    ! Defining dimensions
-    status = nf90_def_dim(ncid, "nx", n, GroundDist)    
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_dim: GroundDist'
-       goto 400
-    endif
-    status = nf90_def_dim(ncid, "nz", nZ,  Altitude)    
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_dim: Altitude'
-       goto 400
-    endif
-    status = nf90_def_dim(ncid, "na", na,  Angle)    
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_dim: Angle'
-       goto 400
-    endif
-    
-    !
-    ! Defining variables
-    status = nf90_def_var(ncid, "x_scene", NF90_FLOAT, (/GroundDist/), XDistId)
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_var1'
-       goto 400
-    endif
-    status = nf90_def_var(ncid, "y_scene", NF90_FLOAT, (/GroundDist/), YDistId)
-    if (status /= 0) then
-       error_str= 'error in nf90_def_var2'
-       goto 400
-    endif
-    status = nf90_def_var(ncid, "along_track", NF90_FLOAT, (/GroundDist/), AlongTrackDistId)
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_var3'
-       goto 400
-    endif
-    status = nf90_def_var(ncid, "angle", NF90_FLOAT, (/Angle/), AngleId)
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_var4'
-       goto 400
-    endif
-    status = nf90_def_var(ncid, "height", NF90_FLOAT, (/Altitude/), HeightId)
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_var5'
-       goto 400
-    endif
-    !
-    !
-    status = nf90_def_var(ncid, trim(nc_title), NF90_FLOAT, (/Altitude, GroundDist, Angle/), QuantId)
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_var6'
-       goto 400
-    endif
-    !
-    ! Defining attributes
-    !
-    status=nf90_put_att(ncid,XDistId,"long_name","Distance along X-scene")
-    if (status /= nf90_noerr) then 
-       error_str= 'Error in nf90_atrdef1a'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,XDistId,"units","km")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef1b'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,XDistId,"plot_title"," Distance along X-scene [km]")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef1c'
-       goto 400
-    endif
-    !
-    status=nf90_put_att(ncid,YDistId,"long_name","Y-scene")
-    if (status /= nf90_noerr) then 
-       error_str= 'Error in nf90_atrdef2a'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,YDistId,"units","km")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef2b'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,YDistId,"plot_title","Y-scene [km]")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef2c'
-       goto 400
-    endif
-    !
-    status=nf90_put_att(ncid,AlongTrackDistId,"long_name","Along Track Distance")
-    if (status /= nf90_noerr) then 
-       error_str= 'Error in nf90_atrdef3a'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,AlongTrackDistId,"units","km")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef3b'
-       goto 400
-    endif
-    !
-    status=nf90_put_att(ncid,AngleId,"long_name","Angle")
-    if (status /= nf90_noerr) then 
-       error_str= 'Error in nf90_atrdef3d'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,AngleId,"units","Deg")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef3e'
-       goto 400
-    endif
-    !
-    status=nf90_put_att(ncid,AlongTrackDistId,"plot_title","Along Track Distance [km]")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef3c'
-       goto 400
-    endif
-    !
-    status=nf90_put_att(ncid,HeightId,"long_name","Height")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef4a'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,HeightId,"units","km")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef4b'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,HeightId,"plot_title","Height [km]")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef4c'
-       goto 400
-    endif
-    !
-    status=nf90_put_att(ncid,QuantId,"long_name",title)
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef5a'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,QuantId,"units",units)
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef5b'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,QuantId,"plot_title",plot_title)
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef5c'
-       goto 400
-    endif
-    !
-    status = nf90_enddef(ncid)
-    if (status /= 0) then 
-       error_str= 'Error in nf90_enddef'
-       goto 400
-    endif
-    ! 
-    
-    ! Writing variables
-    status = nf90_put_var(ncid, XDistId, x(1:n))    
-    if (status /= 0) then 
-       error_str= 'Error in nf90_put_var1'
-       goto 400
-    endif
-    status = nf90_put_var(ncid, YDistId, y(1:n))    
-    if (status /= 0) then 
-       error_str= 'Error in nf90_put_var2'
-       goto 400
-    endif
-    status = nf90_put_var(ncid, AlongTrackDistId, dist(1:n))    
-    if (status /= 0) then 
-       error_str= 'Error in nf90_put_var3'
-       goto 400
-    endif
-    status = nf90_put_var(ncid, HeightId, z(1:nz))    
-    if (status /= 0) then 
-       error_str= 'Error in nf90_put_var4'
-       goto 400
-    endif
-    status = nf90_put_var(ncid, AngleId, angles(1:na))    
-    if (status /= 0) then 
-       error_str= 'Error in nf90_put_var6'
-       goto 400
-    endif
-    status = nf90_put_var(ncid, QuantId, Quant_ang(1:nz,1:n,1:na))    
-    if (status /= 0) then 
-       error_str= 'Error in nf90_put_var6'
-       goto 400
-    endif
-    !
-    ! Close the file
-    !
-    status = nf90_close(ncid)
-    if (status /= 0) then 
-       error_str= 'Error in nf90_close'
-       goto 400
-    endif
-    
-    !  
-400 if (status.ne.0) then
-       call write_error(error_str)
-       call exit(1)
-    endif
-    
-    Return
-    
-  End Subroutine write_results_ncdf_ang
   !
   !
   subroutine find_intercepts_2d(nx,ny,x,y,xo,yo,x1,y1,phi,xi,yi,ri,ni)
