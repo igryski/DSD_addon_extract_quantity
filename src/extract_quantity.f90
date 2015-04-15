@@ -942,11 +942,11 @@ Contains
                       call find_irh_it(data_column(iz)%T,&
                            & data_column(iz)%RH,lid_scatt_info_nopol_angs(isc),irh,it)
                       !
-                      work1=Nsize
+                      work1=Sum(Nsize)
                       work2=work2+work1
                       !
                       do i=1,lid_scatt_info_nopol_angs(isc)%n_angles
-                         work_ar(i)=work_ar(i)+work1*Nsize
+                         work_ar(i)=work_ar(i)+work1*Sum(Nsize)
                       enddo
                       !
                    else if (qindex==15) then ! backscatter
