@@ -988,6 +988,8 @@ Contains
                 Quantity_grid(ix,iy,iz)=sqrt((work2/work1)/pi)
              else if (qindex==50) then
                 Quantity_grid_ang(ix,iy,iz,:)=work_ar(:)/work2
+             else if (qindex==51) then
+                Quantity_grid_ang(ix,iy,iz,:)=work_ar(:)/work2
              else
                 Quantity_grid(ix,iy,iz)=work1/work2
              endif
