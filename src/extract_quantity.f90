@@ -417,6 +417,14 @@ Program extract_quantity
            angles(ia)=(ia-1)*180.0/(nangles-1)
         enddo
      endif
+    !
+     if (qindex==51) then
+        nangles=1801
+        allocate(angles(1:nangles))
+        do ia=1,nangles
+           angles(ia)=(ia-1)*180.0/(nangles-1)
+        enddo
+     endif
      !
      Do i=1,nscatt_types
         !
@@ -486,6 +494,11 @@ Program extract_quantity
   weight_grid=0.0
   !
   if (qindex==50) then
+     Allocate(Quantity_grid_ang(ix1:ix2,iy1:iy2,1:nz_ins,nangles))
+     Quantity_grid_ang=0.0
+  endif
+!
+  if (qindex==51) then
      Allocate(Quantity_grid_ang(ix1:ix2,iy1:iy2,1:nz_ins,nangles))
      Quantity_grid_ang=0.0
   endif
@@ -619,6 +632,11 @@ Program extract_quantity
      Quantity_ang=0.0
   endif
   !
+  if (qindex==51) then
+     Allocate(Quantity_ang(1:nz_ins,1:nshots,1:nangles))
+     Quantity_ang=0.0
+  endif
+  !
   allocate(xg(size(x_grid(:,iy1))))
   allocate(yg(size(y_grid(ix1,:))))
   xg=x_grid(:,iy1)
@@ -714,6 +732,10 @@ Contains
     if (qindex==50) then 
        allocate(work_ar(1:nangles))
     endif
+    !
+    if (qindex==51) then 
+       allocate(work_ar(1:nangles))
+    endif
     ;
     write(unit=waves_val, fmt='(I7)') nint(waves1*1000)
     !
@@ -725,6 +747,10 @@ Contains
        work2=0.0
        !
        if (qindex==50) then 
+          work_ar(:)=0.0
+       endif
+       !
+       if (qindex==51) then 
           work_ar(:)=0.0
        endif
        !
@@ -977,6 +1003,8 @@ Contains
           !
           if (work2==0.0) then
              if (qindex==50) then
+                Quantity_grid_ang(ix,iy,iz,:)=0.0
+             if (qindex==51) then
                 Quantity_grid_ang(ix,iy,iz,:)=0.0
              else 
                 Quantity_grid(ix,iy,iz)=0.0
