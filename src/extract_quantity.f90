@@ -1279,6 +1279,7 @@ Contains
        call write_info( "19 ===> g")
        call write_info( "20 ===> omega (SS_alb)")
        call write_info( "50 ===> Phase Function")
+       call write_info( "51 ===> DSD")
        call write_info( '100 ==> Idealized Radar reflectivity [mm^6/m^3]')
        call write_info( '101 ==> Attenuation at 94 GHz [1/m].')
        call write_info( '102 ==> Idealized Radar reflectivity [mm$^6$/m$^3$] (32 GHz).')
