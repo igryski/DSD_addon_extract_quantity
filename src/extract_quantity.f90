@@ -14,6 +14,7 @@
 !!
 !! *LAST CHANGES*
 !! 
+!! -Apr 15, 2015: I.S. Added DSD output option
 !! -Feb 26, 2014: D.D. Added phase function output option
 !! -Apr 03, 2013: D.D. Fixed error in generating reflectivity at 32 or 3 GHz (atteuation was output instead !!)
 !! -Nov 24, 2011: D.D. Fixes added on Nov 22 were incomplete
@@ -70,6 +71,7 @@
 !! -19 ===> g
 !! -20 ===> omega (SS_alb) 
 !! -50 ===> Phase function 
+!! -51 ===> DSD (Drop Size Distribution)
 !! -100 ==> Idealized Radar reflectivity [mm$^6$/m$^3$] (94 GHz).
 !! -101 ==> Attenuation at 94 GHz [1/m].
 !! -102 ==> Idealized Radar reflectivity [mm$^6$/m$^3$] (32 GHz).
@@ -907,6 +909,18 @@ Contains
                       !
                       do i=1,lid_scatt_info_nopol_angs(isc)%n_angles
                          work_ar(i)=work_ar(i)+work1*Sum(lid_scatt_info_nopol_angs(isc)%p11(1,it,irh,:,i)*Nsize)
+                      enddo
+                      !
+                   else if (qindex==51) then ! The Drop Size Distribution
+                      nc_title="DSD"       
+                      call find_irh_it(data_column(iz)%T,&
+                           & data_column(iz)%RH,lid_scatt_info_nopol_angs(isc),irh,it)
+                      !
+                      work1=Sum(Nsize)
+                      work2=work2+work1
+                      !
+                      do i=1,lid_scatt_info_nopol_angs(isc)%n_angles
+                         work_ar(i)=work_ar(i)+work1*Sum(Nsize)
                       enddo
                       !
                    else if (qindex==15) then ! backscatter
