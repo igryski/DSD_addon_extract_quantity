@@ -939,8 +939,11 @@ Contains
                       !
                    else if (qindex==51) then ! The Drop Size Distribution
                       nc_title="DSD"       
+                      !call find_irh_it(data_column(iz)%T,&
+                      !     & data_column(iz)%RH,lid_scatt_info_nopol_angs(isc),irh,it)
+                      !
                       call find_irh_it(data_column(iz)%T,&
-                           & data_column(iz)%RH,lid_scatt_info_nopol_angs(isc),irh,it)
+                           & data_column(iz)%RH,lid_scatt_info_nopol(isc),irh,it)
                       !
                       work1=Sum(Nsize)
                       work2=work2+work1
