@@ -945,9 +945,9 @@ Contains
                       work1=Sum(Nsize)
                       work2=work2+work1
                       !
-                      do i=1,lid_scatt_info_nopol_angs(isc)%n_angles
-                         work_ar(i)=work_ar(i)+work1*Sum(Nsize)
-                      enddo
+                      !do i=1,lid_scatt_info_nopol_angs(isc)%n_angles
+                       !  work_ar(i)=work_ar(i)+work1*Sum(Nsize)
+                      !enddo
                       !
                    else if (qindex==15) then ! backscatter
                       call find_irh_it_pol(data_column(iz)%T,&
