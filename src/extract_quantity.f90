@@ -157,10 +157,13 @@ Program extract_quantity
   Real,Dimension(:),Allocatable              :: x,y,dist
   Real,Dimension(:,:),Allocatable            :: Quantity
   Real,Dimension(:,:,:),Allocatable            :: Quantity_ang
+  Real,Dimension(:,:,:),Allocatable            :: Quantity_Nsize !IS
   !
   Real,Dimension(:,:),Allocatable            :: X_grid,Y_grid,weight_grid
   Real,Dimension(:,:,:),Allocatable          :: Quantity_grid 
-  Real,Dimension(:,:,:,:),Allocatable          :: Quantity_grid_ang 
+  Real,Dimension(:,:,:,:),Allocatable          :: Quantity_grid_ang
+  Real,Dimension(:,:,:,:),Allocatable          :: Quantity_grid_Nsize !IS 
+
   !
   Real,Dimension(:),Allocatable              :: z_ins ! instrument resolution altitude vector (km)
   Integer                                    :: nz_ins
