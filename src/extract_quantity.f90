@@ -420,14 +420,14 @@ Program extract_quantity
            angles(ia)=(ia-1)*180.0/(nangles-1)
         enddo
      endif
-    !
-     if (qindex==51) then
-        nangles=1801
-        allocate(angles(1:nangles))
-        do ia=1,nangles
-           angles(ia)=(ia-1)*180.0/(nangles-1)
-        enddo
-     endif
+    ! I.S. addon, removed the angles
+    ! if (qindex==51) then
+    !    nangles=1801
+    !    allocate(angles(1:nangles))
+    !    do ia=1,nangles
+    !       angles(ia)=(ia-1)*180.0/(nangles-1)
+    !    enddo
+    ! endif
      !
      Do i=1,nscatt_types
         !
