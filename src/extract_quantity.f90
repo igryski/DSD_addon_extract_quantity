@@ -1020,7 +1020,7 @@ Contains
                       return
                    endif
                    !
-                   DeAllocate(Nsize)
+                   !DeAllocate(Nsize)    ! I.S. Commenting this out
                    !
                 endif
              endif
