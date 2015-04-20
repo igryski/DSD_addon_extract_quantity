@@ -722,7 +722,7 @@ Program extract_quantity
 
 if (qindex.eq.50) then
     call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_ang,nc_title,title,units,plot_title)
-if (qindex.eq.51) then
+else if (qindex.eq.51) then
     call write_results_ncdf_Nsize(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_Nsize,nc_title,title,units,plot_title)
 else 
     call write_results_ncdf(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,nc_title,title,units,plot_title)
