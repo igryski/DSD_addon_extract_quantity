@@ -1127,7 +1127,7 @@ Contains
                          !
                       endif
                       !
-                      DeAllocate(Nsize)
+                      !DeAllocate(Nsize)    ! I.S, need to keep this before writing to NC file
                       DeAllocate(Ze_vec)
                       Deallocate(ext_vec)
                       !
