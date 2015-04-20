@@ -2065,7 +2065,7 @@ end Program extract_quantity
     
     Return
     
-  End Subroutine write_results_ncdf_ang
+  End Subroutine write_results_ncdf_Nsize
 
   !
   !
