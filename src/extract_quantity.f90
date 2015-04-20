@@ -636,8 +636,8 @@ Program extract_quantity
   endif
   !
   if (qindex==51) then
-     Allocate(Quantity_ang(1:nz_ins,1:nshots,1:nangles))
-     Quantity_ang=0.0
+     Allocate(Quantity_Nsize(1:nz_ins,1:nshots,1:nangles))
+     Quantity_Nsize=0.0
   endif
   !
   allocate(xg(size(x_grid(:,iy1))))
