@@ -502,8 +502,8 @@ Program extract_quantity
   endif
   !
   if (qindex==51) then
-     Allocate(Quantity_grid_ang(ix1:ix2,iy1:iy2,1:nz_ins,nangles))
-     Quantity_grid_ang=0.0
+     Allocate(Quantity_grid_Nsize(ix1:ix2,iy1:iy2,1:nz_ins,nangles))
+     Quantity_grid_Nsize=0.0
   endif
   !
   Do iz=1,nz_ins
@@ -690,6 +690,7 @@ Program extract_quantity
         do iz=1,nz_ins
            do ia=1,nangles
               Quantity_ang(iz,i,ia)=Sum(Quantity_grid_ang(:,:,iz,ia)*weight_grid)
+              Quantity_Nsize(iz,i,ia)=Sum(Quantity_grid_Nsize(:,:,iz,ia)*weight_grid)  ! I.S. This should make Nszie/DSD go 3D!
            enddo
         enddo
      endif       
@@ -1011,7 +1012,7 @@ Contains
              if (qindex==50) then
                 Quantity_grid_ang(ix,iy,iz,:)=0.0
              else if (qindex==51) then
-                Quantity_grid_ang(ix,iy,iz,:)=0.0
+                Quantity_grid_Nsize(ix,iy,iz,:)=0.0
              else 
                 Quantity_grid(ix,iy,iz)=0.0
              endif
@@ -1023,7 +1024,7 @@ Contains
              else if (qindex==50) then
                 Quantity_grid_ang(ix,iy,iz,:)=work_ar(:)/work2
              else if (qindex==51) then
-                Quantity_grid_ang(ix,iy,iz,:)=work_ar(:)/work2
+                Quantity_grid_Nsize(ix,iy,iz,:)=work_ar(:)/work2
              else
                 Quantity_grid(ix,iy,iz)=work1/work2
              endif
