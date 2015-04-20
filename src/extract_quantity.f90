@@ -708,6 +708,9 @@ Program extract_quantity
   !  call write_results(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,title)
   if (qindex.ne.50) then
      call write_results_ncdf(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,nc_title,title,units,plot_title)
+  ! I.S. confition for Nsize
+  if (qindex.eq.51) then
+     call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_Nsize,nc_title,title,units,plot_title)
   else
      call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_ang,nc_title,title,units,plot_title)
   endif
@@ -1812,6 +1815,243 @@ end Program extract_quantity
     Return
     
   End Subroutine write_results_ncdf_ang
+
+!
+  Subroutine write_results_ncdf_Nsize(filename,nmax,n,Nz,na,x,y,dist,z,angles,Quant_Nsize,nc_title,title,units,plot_title)
+    !
+    use typeSizes
+    use netcdf
+    Use write_messages
+    !
+    implicit none
+    !
+    Character(len=*),intent(in)    :: filename
+    Integer,intent(in)             :: n,nmax
+    Integer,intent(in)             :: Nz,na
+    Real,intent(in)                :: x(nmax),y(nmax),dist(nmax),z(Nz)
+    Real,intent(in)                :: angles(na)
+    Real,intent(in)                :: Quant_Nsize(Nz,nmax,na)
+    Character(len=*),intent(in)    :: nc_title,title,units,plot_title
+    !
+    Integer                        :: i,j
+    !
+    Integer :: ncid, status
+    !
+    integer :: GroundDist, Altitude, Angle
+    integer :: XDistId, YDistId, AngleId,AlongTrackDistId, HeightId, QuantId
+    Character(len=190)               :: error_str
+    !
+    ! Assume the file does not exist;
+    ! If you want to check, you need to use the nf90_open function
+    status = nf90_create(filename, 0, ncid)
+    if (status /= 0) then 
+       error_str='error in nf90_create'
+       goto 400
+    endif
+    !
+    ! Defining dimensions
+    status = nf90_def_dim(ncid, "nx", n, GroundDist)    
+    if (status /= 0) then 
+       error_str= 'error in nf90_def_dim: GroundDist'
+       goto 400
+    endif
+    status = nf90_def_dim(ncid, "nz", nZ,  Altitude)    
+    if (status /= 0) then 
+       error_str= 'error in nf90_def_dim: Altitude'
+       goto 400
+    endif
+    status = nf90_def_dim(ncid, "na", na,  Angle)    
+    if (status /= 0) then 
+       error_str= 'error in nf90_def_dim: Angle'
+       goto 400
+    endif
+    
+    !
+    ! Defining variables
+    status = nf90_def_var(ncid, "x_scene", NF90_FLOAT, (/GroundDist/), XDistId)
+    if (status /= 0) then 
+       error_str= 'error in nf90_def_var1'
+       goto 400
+    endif
+    status = nf90_def_var(ncid, "y_scene", NF90_FLOAT, (/GroundDist/), YDistId)
+    if (status /= 0) then
+       error_str= 'error in nf90_def_var2'
+       goto 400
+    endif
+    status = nf90_def_var(ncid, "along_track", NF90_FLOAT, (/GroundDist/), AlongTrackDistId)
+    if (status /= 0) then 
+       error_str= 'error in nf90_def_var3'
+       goto 400
+    endif
+    status = nf90_def_var(ncid, "angle", NF90_FLOAT, (/Angle/), AngleId)
+    if (status /= 0) then 
+       error_str= 'error in nf90_def_var4'
+       goto 400
+    endif
+    status = nf90_def_var(ncid, "height", NF90_FLOAT, (/Altitude/), HeightId)
+    if (status /= 0) then 
+       error_str= 'error in nf90_def_var5'
+       goto 400
+    endif
+    !
+    !
+    status = nf90_def_var(ncid, trim(nc_title), NF90_FLOAT, (/Altitude, GroundDist, Angle/), QuantId)
+    if (status /= 0) then 
+       error_str= 'error in nf90_def_var6'
+       goto 400
+    endif
+    !
+    ! Defining attributes
+    !
+    status=nf90_put_att(ncid,XDistId,"long_name","Distance along X-scene")
+    if (status /= nf90_noerr) then 
+       error_str= 'Error in nf90_atrdef1a'
+       goto 400
+    endif
+    status=nf90_put_att(ncid,XDistId,"units","km")
+    if (status /= 0) then 
+       error_str= 'Error in nf90_atrdef1b'
+       goto 400
+    endif
+    status=nf90_put_att(ncid,XDistId,"plot_title"," Distance along X-scene [km]")
+    if (status /= 0) then 
+       error_str= 'Error in nf90_atrdef1c'
+       goto 400
+    endif
+    !
+    status=nf90_put_att(ncid,YDistId,"long_name","Y-scene")
+    if (status /= nf90_noerr) then 
+       error_str= 'Error in nf90_atrdef2a'
+       goto 400
+    endif
+    status=nf90_put_att(ncid,YDistId,"units","km")
+    if (status /= 0) then 
+       error_str= 'Error in nf90_atrdef2b'
+       goto 400
+    endif
+    status=nf90_put_att(ncid,YDistId,"plot_title","Y-scene [km]")
+    if (status /= 0) then 
+       error_str= 'Error in nf90_atrdef2c'
+       goto 400
+    endif
+    !
+    status=nf90_put_att(ncid,AlongTrackDistId,"long_name","Along Track Distance")
+    if (status /= nf90_noerr) then 
+       error_str= 'Error in nf90_atrdef3a'
+       goto 400
+    endif
+    status=nf90_put_att(ncid,AlongTrackDistId,"units","km")
+    if (status /= 0) then 
+       error_str= 'Error in nf90_atrdef3b'
+       goto 400
+    endif
+    !
+    status=nf90_put_att(ncid,AngleId,"long_name","Angle")
+    if (status /= nf90_noerr) then 
+       error_str= 'Error in nf90_atrdef3d'
+       goto 400
+    endif
+    status=nf90_put_att(ncid,AngleId,"units","Deg")
+    if (status /= 0) then 
+       error_str= 'Error in nf90_atrdef3e'
+       goto 400
+    endif
+    !
+    status=nf90_put_att(ncid,AlongTrackDistId,"plot_title","Along Track Distance [km]")
+    if (status /= 0) then 
+       error_str= 'Error in nf90_atrdef3c'
+       goto 400
+    endif
+    !
+    status=nf90_put_att(ncid,HeightId,"long_name","Height")
+    if (status /= 0) then 
+       error_str= 'Error in nf90_atrdef4a'
+       goto 400
+    endif
+    status=nf90_put_att(ncid,HeightId,"units","km")
+    if (status /= 0) then 
+       error_str= 'Error in nf90_atrdef4b'
+       goto 400
+    endif
+    status=nf90_put_att(ncid,HeightId,"plot_title","Height [km]")
+    if (status /= 0) then 
+       error_str= 'Error in nf90_atrdef4c'
+       goto 400
+    endif
+    !
+    status=nf90_put_att(ncid,QuantId,"long_name",title)
+    if (status /= 0) then 
+       error_str= 'Error in nf90_atrdef5a'
+       goto 400
+    endif
+    status=nf90_put_att(ncid,QuantId,"units",units)
+    if (status /= 0) then 
+       error_str= 'Error in nf90_atrdef5b'
+       goto 400
+    endif
+    status=nf90_put_att(ncid,QuantId,"plot_title",plot_title)
+    if (status /= 0) then 
+       error_str= 'Error in nf90_atrdef5c'
+       goto 400
+    endif
+    !
+    status = nf90_enddef(ncid)
+    if (status /= 0) then 
+       error_str= 'Error in nf90_enddef'
+       goto 400
+    endif
+    ! 
+    
+    ! Writing variables
+    status = nf90_put_var(ncid, XDistId, x(1:n))    
+    if (status /= 0) then 
+       error_str= 'Error in nf90_put_var1'
+       goto 400
+    endif
+    status = nf90_put_var(ncid, YDistId, y(1:n))    
+    if (status /= 0) then 
+       error_str= 'Error in nf90_put_var2'
+       goto 400
+    endif
+    status = nf90_put_var(ncid, AlongTrackDistId, dist(1:n))    
+    if (status /= 0) then 
+       error_str= 'Error in nf90_put_var3'
+       goto 400
+    endif
+    status = nf90_put_var(ncid, HeightId, z(1:nz))    
+    if (status /= 0) then 
+       error_str= 'Error in nf90_put_var4'
+       goto 400
+    endif
+    status = nf90_put_var(ncid, AngleId, angles(1:na))    
+    if (status /= 0) then 
+       error_str= 'Error in nf90_put_var6'
+       goto 400
+    endif
+    status = nf90_put_var(ncid, QuantId, Quant_Nsize(1:nz,1:n,1:na))    
+    if (status /= 0) then 
+       error_str= 'Error in nf90_put_var6'
+       goto 400
+    endif
+    !
+    ! Close the file
+    !
+    status = nf90_close(ncid)
+    if (status /= 0) then 
+       error_str= 'Error in nf90_close'
+       goto 400
+    endif
+    
+    !  
+400 if (status.ne.0) then
+       call write_error(error_str)
+       call exit(1)
+    endif
+    
+    Return
+    
+  End Subroutine write_results_ncdf_ang
+
   !
   !
   subroutine find_intercepts_2d(nx,ny,x,y,xo,yo,x1,y1,phi,xi,yi,ri,ni)
