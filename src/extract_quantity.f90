@@ -705,16 +705,31 @@ Program extract_quantity
      call exit(1)
   endif
 
+! I.S. Commented out this routine and rewrote it below in a manner that case=51 can be used.
+!
   !  call write_results(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,title)
-  if (qindex.ne.50) then
-     call write_results_ncdf(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,nc_title,title,units,plot_title)
+  !if (qindex.ne.50) then
+  !   call write_results_ncdf(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,nc_title,title,units,plot_title)
   ! I.S. confition for Nsize
-  if (qindex.eq.51) then
-     call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_Nsize,nc_title,title,units,plot_title)
-  else
-     call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_ang,nc_title,title,units,plot_title)
-  endif
+  !if (qindex.eq.51) then
+  !   call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_Nsize,nc_title,title,units,plot_title)
+  !else
+  !   call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_ang,nc_title,title,units,plot_title)
+  !endif
  !
+
+! I.S. New IF - THEN - ELSE block condition here so that case 51 can be used as well
+
+if (qindex.eq.50) then
+    call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_ang,nc_title,title,units,plot_title)
+if (qindex.eq.51) then
+    call write_results_ncdf_Nsize(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_Nsize,nc_title,title,units,plot_title)
+else 
+    call write_results_ncdf(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,nc_title,title,units,plot_title)
+endif
+
+
+
   !
   !
   call Write_info('******************FINISHED******************')
