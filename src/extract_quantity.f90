@@ -2041,7 +2041,7 @@ end Program extract_quantity
        error_str= 'Error in nf90_put_var4'
        goto 400
     endif
-    status = nf90_put_var(ncid, NsizeId, angles(1:nq))    
+    status = nf90_put_var(ncid, NsizeId, Nsize(1:nq))    
     if (status /= 0) then 
        error_str= 'Error in nf90_put_var6'
        goto 400
