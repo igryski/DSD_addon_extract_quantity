@@ -14,7 +14,7 @@
 !!
 !! *LAST CHANGES*
 !! 
-!! -Apr 15, 2015: I.S. Added DSD output option (not nangs dependent dims)
+!! -Apr 15, 2015: I.S. Added DSD output option
 !! -Feb 26, 2014: D.D. Added phase function output option
 !! -Apr 03, 2013: D.D. Fixed error in generating reflectivity at 32 or 3 GHz (atteuation was output instead !!)
 !! -Nov 24, 2011: D.D. Fixes added on Nov 22 were incomplete
@@ -143,7 +143,6 @@ Program extract_quantity
   Type(scatterer_info),Dimension(:),Allocatable  :: lid_scatt_info_nopol    ! where the data is really stored
   Type(scatterer_info),Dimension(:),Allocatable  :: lid_scatt_info_nopol_angs ! Interpolated to a standard angular grid
   Integer                                        :: nangles
-  Integer                                        :: nNsize  ! I.S added as counter for Nsize
   Real,dimension(:),Allocatable                  :: angles
   !
   Type(size_dist),Dimension(:,:),Allocatable         :: global_size_dists
@@ -158,7 +157,7 @@ Program extract_quantity
   Real,Dimension(:),Allocatable              :: x,y,dist
   Real,Dimension(:,:),Allocatable            :: Quantity
   Real,Dimension(:,:,:),Allocatable            :: Quantity_ang
-  Real,Dimension(:,:,:),Allocatable            :: Quantity_Nsize !IS  (dims: Nsize,nx,nz)
+  Real,Dimension(:,:,:),Allocatable            :: Quantity_Nsize !IS
   !
   Real,Dimension(:,:),Allocatable            :: X_grid,Y_grid,weight_grid
   Real,Dimension(:,:,:),Allocatable          :: Quantity_grid 
@@ -173,7 +172,7 @@ Program extract_quantity
   ! Misc working variables 
   !-------------------------
   !
-  Integer                              :: status,i,ix,iy,iz,isc,j,ia,iNsize
+  Integer                              :: status,i,ix,iy,iz,isc,j,ia
   Integer                              :: ix1,ix2,iy1,iy2,iix,iiy
   Integer                              :: ix1_tmp,iy1_tmp
   Integer                              :: ix2_tmp,iy2_tmp
@@ -421,14 +420,14 @@ Program extract_quantity
            angles(ia)=(ia-1)*180.0/(nangles-1)
         enddo
      endif
-    ! I.S. addon, removed the angles
-    ! if (qindex==51) then
-    !    nangles=1801
-     !   allocate(angles(1:nangles))
-     !   do iNsize=1,Nsize
-     !      angles(ia)=(ia-1)*180.0/(nangles-1)
-     !   enddo
-     !endif
+    !
+     if (qindex==51) then
+        nangles=1801
+        allocate(angles(1:nangles))
+        do ia=1,nangles
+           angles(ia)=(ia-1)*180.0/(nangles-1)
+        enddo
+     endif
      !
      Do i=1,nscatt_types
         !
@@ -503,8 +502,8 @@ Program extract_quantity
   endif
   !
   if (qindex==51) then
-     Allocate(Quantity_grid_Nsize(ix1:ix2,iy1:iy2,1:nz_ins,nNsize))
-     Quantity_grid_Nsize=0.0
+     Allocate(Quantity_grid_ang(ix1:ix2,iy1:iy2,1:nz_ins,nangles))
+     Quantity_grid_ang=0.0
   endif
   !
   Do iz=1,nz_ins
@@ -637,8 +636,8 @@ Program extract_quantity
   endif
   !
   if (qindex==51) then
-     Allocate(Quantity_Nsize(1:nz_ins,1:nshots,1:nNsize))
-     Quantity_Nsize=0.0
+     Allocate(Quantity_ang(1:nz_ins,1:nshots,1:nangles))
+     Quantity_ang=0.0
   endif
   !
   allocate(xg(size(x_grid(:,iy1))))
@@ -690,10 +689,7 @@ Program extract_quantity
      else
         do iz=1,nz_ins
            do ia=1,nangles
-           do iNsize=1,nNsize
               Quantity_ang(iz,i,ia)=Sum(Quantity_grid_ang(:,:,iz,ia)*weight_grid)
-              Quantity_Nsize(iz,i,iNsize)=Sum(Quantity_grid_Nsize(:,:,iz,nNsize)*weight_grid)  ! I.S. This should make Nszie/DSD go 3D!
-           enddo
            enddo
         enddo
      endif       
@@ -708,31 +704,13 @@ Program extract_quantity
      call exit(1)
   endif
 
-! I.S. Commented out this routine and rewrote it below in a manner that case=51 can be used.
-!
   !  call write_results(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,title)
-  !if (qindex.ne.50) then
-  !   call write_results_ncdf(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,nc_title,title,units,plot_title)
-  ! I.S. confition for Nsize
-  !if (qindex.eq.51) then
-  !   call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_Nsize,nc_title,title,units,plot_title)
-  !else
-  !   call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_ang,nc_title,title,units,plot_title)
-  !endif
+  if (qindex.ne.50) then
+     call write_results_ncdf(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,nc_title,title,units,plot_title)
+  else
+     call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_ang,nc_title,title,units,plot_title)
+  endif
  !
-
-! I.S. New IF - THEN - ELSE block condition here so that case 51 can be used as well
-
-if (qindex.eq.50) then
-    call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_ang,nc_title,title,units,plot_title)
-else if (qindex.eq.51) then
-    call write_results_ncdf_Nsize(outfilename,size(x),size(x),nz_ins,Nsize,x,y,dist,z_ins,angles,Quantity_Nsize,nc_title,title,units,plot_title)
-else 
-    call write_results_ncdf(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,nc_title,title,units,plot_title)
-endif
-
-
-
   !
   !
   call Write_info('******************FINISHED******************')
@@ -759,7 +737,7 @@ Contains
     endif
     !
     if (qindex==51) then 
-       allocate(work_ar(1:nNsize))
+       allocate(work_ar(1:nangles))
     endif
     ;
     write(unit=waves_val, fmt='(I7)') nint(waves1*1000)
@@ -1023,7 +1001,7 @@ Contains
                       return
                    endif
                    !
-                   !DeAllocate(Nsize)    ! I.S. Commenting this out
+                   DeAllocate(Nsize)
                    !
                 endif
              endif
@@ -1033,7 +1011,7 @@ Contains
              if (qindex==50) then
                 Quantity_grid_ang(ix,iy,iz,:)=0.0
              else if (qindex==51) then
-                Quantity_grid_Nsize(ix,iy,iz,:)=0.0
+                Quantity_grid_ang(ix,iy,iz,:)=0.0
              else 
                 Quantity_grid(ix,iy,iz)=0.0
              endif
@@ -1045,7 +1023,7 @@ Contains
              else if (qindex==50) then
                 Quantity_grid_ang(ix,iy,iz,:)=work_ar(:)/work2
              else if (qindex==51) then
-                Quantity_grid_Nsize(ix,iy,iz,:)=work_ar(:)/work2
+                Quantity_grid_ang(ix,iy,iz,:)=work_ar(:)/work2
              else
                 Quantity_grid(ix,iy,iz)=work1/work2
              endif
@@ -1130,7 +1108,7 @@ Contains
                          !
                       endif
                       !
-                      !DeAllocate(Nsize)    ! I.S, need to keep this before writing to NC file
+                      DeAllocate(Nsize)
                       DeAllocate(Ze_vec)
                       Deallocate(ext_vec)
                       !
@@ -1833,243 +1811,6 @@ end Program extract_quantity
     Return
     
   End Subroutine write_results_ncdf_ang
-
-!
-  Subroutine write_results_ncdf_Nsize(filename,nmax,n,Nz,na,x,y,dist,z,angles,Quant_Nsize,nc_title,title,units,plot_title)
-    !
-    use typeSizes
-    use netcdf
-    Use write_messages
-    !
-    implicit none
-    !
-    Character(len=*),intent(in)    :: filename
-    Integer,intent(in)             :: n,nmax
-    Integer,intent(in)             :: Nz,na
-    Real,intent(in)                :: x(nmax),y(nmax),dist(nmax),z(Nz)
-    !Real,intent(in)                :: angles(na)
-    Real,intent(in)                :: Quant_Nsize(Nz,nmax,na)
-    Character(len=*),intent(in)    :: nc_title,title,units,plot_title
-    !
-    Integer                        :: i,j
-    !
-    Integer :: ncid, status
-    !
-    integer :: GroundDist, Altitude, Angle
-    integer :: XDistId, YDistId, AngleId,AlongTrackDistId, HeightId, QuantId
-    Character(len=190)               :: error_str
-    !
-    ! Assume the file does not exist;
-    ! If you want to check, you need to use the nf90_open function
-    status = nf90_create(filename, 0, ncid)
-    if (status /= 0) then 
-       error_str='error in nf90_create'
-       goto 400
-    endif
-    !
-    ! Defining dimensions
-    status = nf90_def_dim(ncid, "nx", n, GroundDist)    
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_dim: GroundDist'
-       goto 400
-    endif
-    status = nf90_def_dim(ncid, "nz", nZ,  Altitude)    
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_dim: Altitude'
-       goto 400
-    endif
-    status = nf90_def_dim(ncid, "na", na,  Angle)    
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_dim: Angle'
-       goto 400
-    endif
-    
-    !
-    ! Defining variables
-    status = nf90_def_var(ncid, "x_scene", NF90_FLOAT, (/GroundDist/), XDistId)
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_var1'
-       goto 400
-    endif
-    status = nf90_def_var(ncid, "y_scene", NF90_FLOAT, (/GroundDist/), YDistId)
-    if (status /= 0) then
-       error_str= 'error in nf90_def_var2'
-       goto 400
-    endif
-    status = nf90_def_var(ncid, "along_track", NF90_FLOAT, (/GroundDist/), AlongTrackDistId)
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_var3'
-       goto 400
-    endif
-    status = nf90_def_var(ncid, "angle", NF90_FLOAT, (/Angle/), AngleId)
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_var4'
-       goto 400
-    endif
-    status = nf90_def_var(ncid, "height", NF90_FLOAT, (/Altitude/), HeightId)
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_var5'
-       goto 400
-    endif
-    !
-    !
-    status = nf90_def_var(ncid, trim(nc_title), NF90_FLOAT, (/Altitude, GroundDist, Angle/), QuantId)
-    if (status /= 0) then 
-       error_str= 'error in nf90_def_var6'
-       goto 400
-    endif
-    !
-    ! Defining attributes
-    !
-    status=nf90_put_att(ncid,XDistId,"long_name","Distance along X-scene")
-    if (status /= nf90_noerr) then 
-       error_str= 'Error in nf90_atrdef1a'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,XDistId,"units","km")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef1b'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,XDistId,"plot_title"," Distance along X-scene [km]")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef1c'
-       goto 400
-    endif
-    !
-    status=nf90_put_att(ncid,YDistId,"long_name","Y-scene")
-    if (status /= nf90_noerr) then 
-       error_str= 'Error in nf90_atrdef2a'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,YDistId,"units","km")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef2b'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,YDistId,"plot_title","Y-scene [km]")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef2c'
-       goto 400
-    endif
-    !
-    status=nf90_put_att(ncid,AlongTrackDistId,"long_name","Along Track Distance")
-    if (status /= nf90_noerr) then 
-       error_str= 'Error in nf90_atrdef3a'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,AlongTrackDistId,"units","km")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef3b'
-       goto 400
-    endif
-    !
-    status=nf90_put_att(ncid,AngleId,"long_name","Angle")
-    if (status /= nf90_noerr) then 
-       error_str= 'Error in nf90_atrdef3d'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,AngleId,"units","Deg")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef3e'
-       goto 400
-    endif
-    !
-    status=nf90_put_att(ncid,AlongTrackDistId,"plot_title","Along Track Distance [km]")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef3c'
-       goto 400
-    endif
-    !
-    status=nf90_put_att(ncid,HeightId,"long_name","Height")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef4a'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,HeightId,"units","km")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef4b'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,HeightId,"plot_title","Height [km]")
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef4c'
-       goto 400
-    endif
-    !
-    status=nf90_put_att(ncid,QuantId,"long_name",title)
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef5a'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,QuantId,"units",units)
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef5b'
-       goto 400
-    endif
-    status=nf90_put_att(ncid,QuantId,"plot_title",plot_title)
-    if (status /= 0) then 
-       error_str= 'Error in nf90_atrdef5c'
-       goto 400
-    endif
-    !
-    status = nf90_enddef(ncid)
-    if (status /= 0) then 
-       error_str= 'Error in nf90_enddef'
-       goto 400
-    endif
-    ! 
-    
-    ! Writing variables
-    status = nf90_put_var(ncid, XDistId, x(1:n))    
-    if (status /= 0) then 
-       error_str= 'Error in nf90_put_var1'
-       goto 400
-    endif
-    status = nf90_put_var(ncid, YDistId, y(1:n))    
-    if (status /= 0) then 
-       error_str= 'Error in nf90_put_var2'
-       goto 400
-    endif
-    status = nf90_put_var(ncid, AlongTrackDistId, dist(1:n))    
-    if (status /= 0) then 
-       error_str= 'Error in nf90_put_var3'
-       goto 400
-    endif
-    status = nf90_put_var(ncid, HeightId, z(1:nz))    
-    if (status /= 0) then 
-       error_str= 'Error in nf90_put_var4'
-       goto 400
-    endif
-    status = nf90_put_var(ncid, AngleId, angles(1:na))    
-    if (status /= 0) then 
-       error_str= 'Error in nf90_put_var6'
-       goto 400
-    endif
-    status = nf90_put_var(ncid, QuantId, Quant_Nsize(1:nz,1:n,1:na))    
-    if (status /= 0) then 
-       error_str= 'Error in nf90_put_var6'
-       goto 400
-    endif
-    !
-    ! Close the file
-    !
-    status = nf90_close(ncid)
-    if (status /= 0) then 
-       error_str= 'Error in nf90_close'
-       goto 400
-    endif
-    
-    !  
-400 if (status.ne.0) then
-       call write_error(error_str)
-       call exit(1)
-    endif
-    
-    Return
-    
-  End Subroutine write_results_ncdf_Nsize
-
   !
   !
   subroutine find_intercepts_2d(nx,ny,x,y,xo,yo,x1,y1,phi,xi,yi,ri,ni)
