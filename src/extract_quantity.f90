@@ -1023,7 +1023,7 @@ Contains
                       return
                    endif
                    !
-                   !DeAllocate(Nsize)    ! I.S. Commenting this out
+                   DeAllocate(Nsize)    ! I.S. Commenting this out
                    !
                 endif
              endif
