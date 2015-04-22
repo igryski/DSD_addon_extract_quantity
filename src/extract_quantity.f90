@@ -143,7 +143,7 @@ Program extract_quantity
   Type(scatterer_info),Dimension(:),Allocatable  :: lid_scatt_info_nopol    ! where the data is really stored
   Type(scatterer_info),Dimension(:),Allocatable  :: lid_scatt_info_nopol_angs ! Interpolated to a standard angular grid
   Integer                                        :: nangles
-  Integer                                        :: nNsize  ! I.S added as counter for Nsize
+  Integer                                        :: nNsize  ! I.S added as counter for Nsize (coordina is iNsize)
   Real,dimension(:),Allocatable                  :: angles
   !
   Type(size_dist),Dimension(:,:),Allocatable         :: global_size_dists
@@ -163,7 +163,7 @@ Program extract_quantity
   Real,Dimension(:,:),Allocatable            :: X_grid,Y_grid,weight_grid
   Real,Dimension(:,:,:),Allocatable          :: Quantity_grid 
   Real,Dimension(:,:,:,:),Allocatable          :: Quantity_grid_ang
-  Real,Dimension(:,:,:,:),Allocatable          :: Quantity_grid_Nsize !IS 
+  Real,Dimension(:,:,:,:),Allocatable          :: Quantity_grid_Nsize !IS  (4dim grid for DSD) 
 
   !
   Real,Dimension(:),Allocatable              :: z_ins ! instrument resolution altitude vector (km)
@@ -425,8 +425,8 @@ Program extract_quantity
     ! if (qindex==51) then
     !    nangles=1801
      !   allocate(angles(1:nangles))
-     !   do iNsize=1,Nsize
-     !      angles(ia)=(ia-1)*180.0/(nangles-1)
+     !   do iNsize=1,nNsize
+     !      Nsize(iNsize)=
      !   enddo
      !endif
      !
@@ -692,7 +692,7 @@ Program extract_quantity
            do ia=1,nangles
            do iNsize=1,nNsize
               Quantity_ang(iz,i,ia)=Sum(Quantity_grid_ang(:,:,iz,ia)*weight_grid)
-              Quantity_Nsize(iz,i,iNsize)=Sum(Quantity_grid_Nsize(:,:,iz,nNsize)*weight_grid)  ! I.S. This should make Nszie/DSD go 3D!
+              Quantity_Nsize(iz,i,iNsize)=Sum(Quantity_grid_Nsize(:,:,iz,iNsize)*weight_grid)  ! I.S. This should make Nszie/DSD go 3D!
            enddo
            enddo
         enddo
@@ -1023,7 +1023,7 @@ Contains
                       return
                    endif
                    !
-                   DeAllocate(Nsize)    ! I.S. Commenting this out
+                   DeAllocate(Nsize)    ! I.S. Keeping this due to 2x allocation of Nsize compiler error
                    !
                 endif
              endif
