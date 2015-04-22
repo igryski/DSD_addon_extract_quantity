@@ -1964,12 +1964,12 @@ end Program extract_quantity
        goto 400
     endif
     !
-    status=nf90_put_att(ncid,AngleId,"long_name","Angle")
+    status=nf90_put_att(ncid,NsizeId,"long_name","Number of Sizes")
     if (status /= nf90_noerr) then 
        error_str= 'Error in nf90_atrdef3d'
        goto 400
     endif
-    status=nf90_put_att(ncid,AngleId,"units","Deg")
+    status=nf90_put_att(ncid,NsizeId,"units","Buffer")
     if (status /= 0) then 
        error_str= 'Error in nf90_atrdef3e'
        goto 400
@@ -2041,12 +2041,12 @@ end Program extract_quantity
        error_str= 'Error in nf90_put_var4'
        goto 400
     endif
-    status = nf90_put_var(ncid, AngleId, angles(1:na))    
+    status = nf90_put_var(ncid, NsizeId, angles(1:nq))    
     if (status /= 0) then 
        error_str= 'Error in nf90_put_var6'
        goto 400
     endif
-    status = nf90_put_var(ncid, QuantId, Quant_Nsize(1:nz,1:n,1:na))    
+    status = nf90_put_var(ncid, QuantId, Quant_Nsize(1:nz,1:n,1:nq))    
     if (status /= 0) then 
        error_str= 'Error in nf90_put_var6'
        goto 400
