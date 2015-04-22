@@ -1835,7 +1835,7 @@ end Program extract_quantity
   End Subroutine write_results_ncdf_ang
 
 !
-  Subroutine write_results_ncdf_Nsize(filename,nmax,n,Nz,na,x,y,dist,z,angles,Quant_Nsize,nc_title,title,units,plot_title)
+  Subroutine write_results_ncdf_Nsize(filename,nmax,n,Nz,nq,x,y,dist,z,Nsize,Quant_Nsize,nc_title,title,units,plot_title)
     !
     use typeSizes
     use netcdf
@@ -1845,18 +1845,18 @@ end Program extract_quantity
     !
     Character(len=*),intent(in)    :: filename
     Integer,intent(in)             :: n,nmax
-    Integer,intent(in)             :: Nz,na
+    Integer,intent(in)             :: Nz,nq
     Real,intent(in)                :: x(nmax),y(nmax),dist(nmax),z(Nz)
     Real,intent(in)                :: Nsize(nq)
-    Real,intent(in)                :: Quant_Nsize(Nz,nmax,na)
+    Real,intent(in)                :: Quant_Nsize(Nz,nmax,nq)
     Character(len=*),intent(in)    :: nc_title,title,units,plot_title
     !
     Integer                        :: i,j
     !
     Integer :: ncid, status
     !
-    integer :: GroundDist, Altitude, Angle
-    integer :: XDistId, YDistId, AngleId,AlongTrackDistId, HeightId, QuantId
+    integer :: GroundDist, Altitude, NumbOfSize
+    integer :: XDistId, YDistId, NsizeId,AlongTrackDistId, HeightId, QuantId
     Character(len=190)               :: error_str
     !
     ! Assume the file does not exist;
@@ -1901,7 +1901,7 @@ end Program extract_quantity
        error_str= 'error in nf90_def_var3'
        goto 400
     endif
-    status = nf90_def_var(ncid, "angle", NF90_FLOAT, (/Angle/), AngleId)
+    status = nf90_def_var(ncid, "angle", NF90_FLOAT, (/NumbOfSize/), NsizeId)
     if (status /= 0) then 
        error_str= 'error in nf90_def_var4'
        goto 400
@@ -1913,7 +1913,7 @@ end Program extract_quantity
     endif
     !
     !
-    status = nf90_def_var(ncid, trim(nc_title), NF90_FLOAT, (/Altitude, GroundDist, Angle/), QuantId)
+    status = nf90_def_var(ncid, trim(nc_title), NF90_FLOAT, (/Altitude, GroundDist, NumbOfSize/), QuantId)
     if (status /= 0) then 
        error_str= 'error in nf90_def_var6'
        goto 400
