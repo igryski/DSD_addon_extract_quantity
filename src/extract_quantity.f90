@@ -14,7 +14,7 @@
 !!
 !! *LAST CHANGES*
 !! 
-!! -Apr 15, 2015: I.S. Added DSD output option
+!! -Apr 15, 2015: I.S. Added DSD output option (not nags dependent dims)
 !! -Feb 26, 2014: D.D. Added phase function output option
 !! -Apr 03, 2013: D.D. Fixed error in generating reflectivity at 32 or 3 GHz (atteuation was output instead !!)
 !! -Nov 24, 2011: D.D. Fixes added on Nov 22 were incomplete
@@ -157,7 +157,7 @@ Program extract_quantity
   Real,Dimension(:),Allocatable              :: x,y,dist
   Real,Dimension(:,:),Allocatable            :: Quantity
   Real,Dimension(:,:,:),Allocatable            :: Quantity_ang
-  Real,Dimension(:,:,:),Allocatable            :: Quantity_Nsize !IS
+  Real,Dimension(:,:,:),Allocatable            :: Quantity_Nsize !IS  (dims: Nsize,nx,nz)
   !
   Real,Dimension(:,:),Allocatable            :: X_grid,Y_grid,weight_grid
   Real,Dimension(:,:,:),Allocatable          :: Quantity_grid 
@@ -172,7 +172,7 @@ Program extract_quantity
   ! Misc working variables 
   !-------------------------
   !
-  Integer                              :: status,i,ix,iy,iz,isc,j,ia
+  Integer                              :: status,i,ix,iy,iz,isc,j,ia,iNsize
   Integer                              :: ix1,ix2,iy1,iy2,iix,iiy
   Integer                              :: ix1_tmp,iy1_tmp
   Integer                              :: ix2_tmp,iy2_tmp
@@ -423,11 +423,11 @@ Program extract_quantity
     ! I.S. addon, removed the angles
     ! if (qindex==51) then
     !    nangles=1801
-    !    allocate(angles(1:nangles))
-    !    do ia=1,nangles
-    !       angles(ia)=(ia-1)*180.0/(nangles-1)
-    !    enddo
-    ! endif
+     !   allocate(angles(1:nangles))
+     !   do iNsize=1,Nsize
+     !      angles(ia)=(ia-1)*180.0/(nangles-1)
+     !   enddo
+     !endif
      !
      Do i=1,nscatt_types
         !
@@ -502,7 +502,7 @@ Program extract_quantity
   endif
   !
   if (qindex==51) then
-     Allocate(Quantity_grid_Nsize(ix1:ix2,iy1:iy2,1:nz_ins,nangles))
+     Allocate(Quantity_grid_Nsize(ix1:ix2,iy1:iy2,1:nz_ins,Nsize))
      Quantity_grid_Nsize=0.0
   endif
   !
@@ -636,7 +636,7 @@ Program extract_quantity
   endif
   !
   if (qindex==51) then
-     Allocate(Quantity_Nsize(1:nz_ins,1:nshots,1:nangles))
+     Allocate(Quantity_Nsize(1:nz_ins,1:nshots,1:Nsize))
      Quantity_Nsize=0.0
   endif
   !
@@ -689,8 +689,10 @@ Program extract_quantity
      else
         do iz=1,nz_ins
            do ia=1,nangles
+           do iNsize=1,Nsize
               Quantity_ang(iz,i,ia)=Sum(Quantity_grid_ang(:,:,iz,ia)*weight_grid)
-              Quantity_Nsize(iz,i,ia)=Sum(Quantity_grid_Nsize(:,:,iz,ia)*weight_grid)  ! I.S. This should make Nszie/DSD go 3D!
+              Quantity_Nsize(iz,i,iNsize)=Sum(Quantity_grid_Nsize(:,:,iz,iNsize)*weight_grid)  ! I.S. This should make Nszie/DSD go 3D!
+           enddo
            enddo
         enddo
      endif       
@@ -723,7 +725,7 @@ Program extract_quantity
 if (qindex.eq.50) then
     call write_results_ncdf_ang(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_ang,nc_title,title,units,plot_title)
 else if (qindex.eq.51) then
-    call write_results_ncdf_Nsize(outfilename,size(x),size(x),nz_ins,nangles,x,y,dist,z_ins,angles,Quantity_Nsize,nc_title,title,units,plot_title)
+    call write_results_ncdf_Nsize(outfilename,size(x),size(x),nz_ins,Nsize,x,y,dist,z_ins,angles,Quantity_Nsize,nc_title,title,units,plot_title)
 else 
     call write_results_ncdf(outfilename,size(x),size(x),nz_ins,x,y,dist,z_ins,Quantity,nc_title,title,units,plot_title)
 endif
@@ -756,7 +758,7 @@ Contains
     endif
     !
     if (qindex==51) then 
-       allocate(work_ar(1:nangles))
+       allocate(work_ar(1:Nsize))
     endif
     ;
     write(unit=waves_val, fmt='(I7)') nint(waves1*1000)
@@ -1844,7 +1846,7 @@ end Program extract_quantity
     Integer,intent(in)             :: n,nmax
     Integer,intent(in)             :: Nz,na
     Real,intent(in)                :: x(nmax),y(nmax),dist(nmax),z(Nz)
-    Real,intent(in)                :: angles(na)
+    !Real,intent(in)                :: angles(na)
     Real,intent(in)                :: Quant_Nsize(Nz,nmax,na)
     Character(len=*),intent(in)    :: nc_title,title,units,plot_title
     !
