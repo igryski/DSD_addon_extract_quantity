@@ -1847,7 +1847,7 @@ end Program extract_quantity
     Integer,intent(in)             :: n,nmax
     Integer,intent(in)             :: Nz,na
     Real,intent(in)                :: x(nmax),y(nmax),dist(nmax),z(Nz)
-    !Real,intent(in)                :: angles(na)
+    Real,intent(in)                :: angles(na)
     Real,intent(in)                :: Quant_Nsize(Nz,nmax,na)
     Character(len=*),intent(in)    :: nc_title,title,units,plot_title
     !
