@@ -1847,7 +1847,7 @@ end Program extract_quantity
     Integer,intent(in)             :: n,nmax
     Integer,intent(in)             :: Nz,na
     Real,intent(in)                :: x(nmax),y(nmax),dist(nmax),z(Nz)
-    Real,intent(in)                :: angles(na)
+    Real,intent(in)                :: Nsize(nq)
     Real,intent(in)                :: Quant_Nsize(Nz,nmax,na)
     Character(len=*),intent(in)    :: nc_title,title,units,plot_title
     !
@@ -1878,9 +1878,9 @@ end Program extract_quantity
        error_str= 'error in nf90_def_dim: Altitude'
        goto 400
     endif
-    status = nf90_def_dim(ncid, "na", na,  Angle)    
+    status = nf90_def_dim(ncid, "nq", nq,  NumbOfSize)    
     if (status /= 0) then 
-       error_str= 'error in nf90_def_dim: Angle'
+       error_str= 'error in nf90_def_dim: NumbOfSize'
        goto 400
     endif
     
