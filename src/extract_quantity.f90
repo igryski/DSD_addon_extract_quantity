@@ -1856,7 +1856,7 @@ end Program extract_quantity
     Integer :: ncid, status
     !
     integer :: GroundDist, Altitude, NumbOfSize
-    integer :: XDistId, YDistId, NsizeId,AlongTrackDistId, HeightId, QuantId
+    integer :: XDistId, YDistId, NsizeId, AlongTrackDistId, HeightId, QuantId
     Character(len=190)               :: error_str
     !
     ! Assume the file does not exist;
@@ -1901,7 +1901,7 @@ end Program extract_quantity
        error_str= 'error in nf90_def_var3'
        goto 400
     endif
-    status = nf90_def_var(ncid, "angle", NF90_FLOAT, (/NumbOfSize/), NsizeId)
+    status = nf90_def_var(ncid, "Nsize", NF90_FLOAT, (/NumbOfSize/), NsizeId)
     if (status /= 0) then 
        error_str= 'error in nf90_def_var4'
        goto 400
