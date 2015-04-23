@@ -143,7 +143,7 @@ Program extract_quantity
   Type(scatterer_info),Dimension(:),Allocatable  :: lid_scatt_info_nopol    ! where the data is really stored
   Type(scatterer_info),Dimension(:),Allocatable  :: lid_scatt_info_nopol_angs ! Interpolated to a standard angular grid
   Integer                                        :: nangles
-  Integer                                        :: nNsize  ! I.S added as counter for Nsize (coordina is iNsize)
+  Integer                                        :: nNsize  ! I.S added as counter for Nsize (coordinate is iNsize)
   Real,dimension(:),Allocatable                  :: angles
   !
   Type(size_dist),Dimension(:,:),Allocatable         :: global_size_dists
@@ -683,20 +683,38 @@ Program extract_quantity
      xo=xo+dr*cosd(phi)
      yo=yo+dr*sind(phi)
      !
-     if (qindex.ne.50) then
-        do iz=1,nz_ins
-           Quantity(iz,i)=Sum(Quantity_grid(:,:,iz)*weight_grid)
-        enddo
+     if (qindex.eq.50) then
+       do iz=1,nz_ins
+       do ia=1,nangles
+         Quantity_ang(iz,i,ia)=Sum(Quantity_grid_ang(:,:,iz,ia)*weight_grid)
+       enddo
+       enddo
+     else if (qindex.eq.51) then
+       do iz=1,nz_ins
+       do iNSize=1,nNsize
+         Quantity_Nsize(iz,i,iNsize)=Sum(Quantity_grid_Nsize(:,:,iz,iNsize)*weight_grid)  ! I.S. This should make Nszie/DSD go 3D!
+       enddo
+       enddo
      else
-        do iz=1,nz_ins
-           do ia=1,nangles
-           do iNsize=1,nNsize
-              Quantity_ang(iz,i,ia)=Sum(Quantity_grid_ang(:,:,iz,ia)*weight_grid)
-              Quantity_Nsize(iz,i,iNsize)=Sum(Quantity_grid_Nsize(:,:,iz,iNsize)*weight_grid)  ! I.S. This should make Nszie/DSD go 3D!
-           enddo
-           enddo
-        enddo
-     endif       
+       do iz=1,nz_ins
+         Quantity(iz,i)=Sum(Quantity_grid(:,:,iz)*weight_grid)
+       enddo
+     endif
+
+     !if (qindex.ne.50) then
+     !   do iz=1,nz_ins
+     !      Quantity(iz,i)=Sum(Quantity_grid(:,:,iz)*weight_grid)
+     !   enddo
+     !else
+     !   do iz=1,nz_ins
+     !      do ia=1,nangles
+     !      do iNsize=1,nNsize
+     !         Quantity_ang(iz,i,ia)=Sum(Quantity_grid_ang(:,:,iz,ia)*weight_grid)
+     !         Quantity_Nsize(iz,i,iNsize)=Sum(Quantity_grid_Nsize(:,:,iz,iNsize)*weight_grid)  ! I.S. This should make Nszie/DSD go 3D!
+     !      enddo
+     !      enddo
+     !   enddo
+     !endif       
      !
   enddo
   !
